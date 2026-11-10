@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\GrpTextInstance.obj",
+            "outputs": [
+                "Release\\GrpTextInstance.h.obj.dt.module.json",
+                "Release\\GrpTextInstance.h.obj.dt.d.json",
+                "Release\\eterlib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

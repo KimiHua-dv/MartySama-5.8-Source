@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\LensFlare.obj",
+            "outputs": [
+                "Release\\LensFlare.cpp.obj.dt.module.json",
+                "Release\\LensFlare.cpp.obj.dt.d.json",
+                "Release\\eterlib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

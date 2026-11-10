@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\CheckLatestFiles.obj",
+            "outputs": [
+                "Release\\CheckLatestFiles.cpp.obj.dt.module.json",
+                "Release\\CheckLatestFiles.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

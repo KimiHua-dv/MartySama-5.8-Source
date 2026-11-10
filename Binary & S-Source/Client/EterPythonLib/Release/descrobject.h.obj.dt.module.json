@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\descrobject.obj",
+            "outputs": [
+                "Release\\descrobject.h.obj.dt.module.json",
+                "Release\\descrobject.h.obj.dt.d.json",
+                "Release\\eterPythonLib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

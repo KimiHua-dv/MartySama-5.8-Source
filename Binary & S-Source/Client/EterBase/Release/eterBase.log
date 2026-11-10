@@ -1,0 +1,52 @@
+﻿  StdAfx.cpp
+  CPostIt.cpp
+  CRC32.cpp
+  Debug.cpp
+  FileBase.cpp
+  FileDir.cpp
+  FileLoader.cpp
+  MappedFile.cpp
+  Random.cpp
+  Stl.cpp
+  TempFile.cpp
+  Timer.cpp
+  Utils.cpp
+  cipher.cpp
+  error.cpp
+  lzo.cpp
+  Base.cpp
+  Poly.cpp
+  SymTable.cpp
+  Symbol.cpp
+  tea.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Extern\include\cryptopp\asn.h(296,28): warning C5054: operador '|': preterido entre enumerações de tipos diferentes
+  (compilando o arquivo fonte '/cipher.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Extern\include\cryptopp\asn.h(297,28): warning C5054: operador '|': preterido entre enumerações de tipos diferentes
+  (compilando o arquivo fonte '/cipher.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Extern\include\cryptopp\asn.h(312,29): warning C5054: operador '|': preterido entre enumerações de tipos diferentes
+  (compilando o arquivo fonte '/cipher.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Extern\include\cryptopp\asn.h(314,29): warning C5054: operador '|': preterido entre enumerações de tipos diferentes
+  (compilando o arquivo fonte '/cipher.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Extern\include\cryptopp\asn.h(322,29): warning C5054: operador '|': preterido entre enumerações de tipos diferentes
+  (compilando o arquivo fonte '/cipher.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Extern\include\cryptopp\asn.h(324,29): warning C5054: operador '|': preterido entre enumerações de tipos diferentes
+  (compilando o arquivo fonte '/cipher.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Extern\include\cryptopp\asn.h(332,24): warning C5054: operador '|': preterido entre enumerações de tipos diferentes
+  (compilando o arquivo fonte '/cipher.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Extern\include\cryptopp\asn.h(334,24): warning C5054: operador '|': preterido entre enumerações de tipos diferentes
+  (compilando o arquivo fonte '/cipher.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Extern\include\cryptopp\asn.h(342,24): warning C5054: operador '|': preterido entre enumerações de tipos diferentes
+  (compilando o arquivo fonte '/cipher.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Extern\include\cryptopp\asn.h(344,24): warning C5054: operador '|': preterido entre enumerações de tipos diferentes
+  (compilando o arquivo fonte '/cipher.cpp')
+  
+  eterBase.vcxproj -> D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\EterBase\Release\eterBase.lib

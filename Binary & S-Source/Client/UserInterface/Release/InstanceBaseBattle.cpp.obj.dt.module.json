@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\InstanceBaseBattle.obj",
+            "outputs": [
+                "Release\\InstanceBaseBattle.cpp.obj.dt.module.json",
+                "Release\\InstanceBaseBattle.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

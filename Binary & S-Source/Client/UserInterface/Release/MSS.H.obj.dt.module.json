@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\MSS.obj",
+            "outputs": [
+                "Release\\MSS.H.obj.dt.module.json",
+                "Release\\MSS.H.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

@@ -1,0 +1,85 @@
+﻿  StdAfx.cpp
+  ActorInstance.cpp
+  ActorInstanceAttach.cpp
+  ActorInstanceBattle.cpp
+  ActorInstanceBlend.cpp
+  ActorInstanceCollisionDetection.cpp
+  ActorInstanceData.cpp
+  ActorInstanceEvent.cpp
+  ActorInstanceFly.cpp
+  ActorInstanceMotion.cpp
+  ActorInstanceMotionEvent.cpp
+  ActorInstancePosition.cpp
+  ActorInstanceRender.cpp
+  ActorInstanceRotation.cpp
+  ActorInstanceSync.cpp
+  ActorInstanceWeaponTrace.cpp
+  Area.cpp
+  AreaLoaderThread.cpp
+  AreaTerrain.cpp
+  DungeonBlock.cpp
+  FlyTarget.cpp
+  FlyTrace.cpp
+  FlyingData.cpp
+  FlyingInstance.cpp
+  FlyingObjectManager.cpp
+  GameEventManager.cpp
+  GameType.cpp
+  GameUtil.cpp
+  ItemData.cpp
+  ItemManager.cpp
+  MapBase.cpp
+  MapManager.cpp
+  MapOutdoor.cpp
+  MapOutdoorCharacterShadow.cpp
+  MapOutdoorIndexBuffer.cpp
+  MapOutdoorLoad.cpp
+  MapOutdoorQuadtree.cpp
+  MapOutdoorRender.cpp
+  MapOutdoorRenderHTP.cpp
+  MapOutdoorRenderSTP.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\GameLib\MapOutdoor.cpp(1256,1): warning C4717: 'CMapOutdoor::isPuddleOn': recursivo em todos os caminhos de controle, função causará estouro na pilha em tempo de execução
+  MapOutdoorUpdate.cpp
+  MapOutdoorWater.cpp
+  MapType.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\GameLib\MapOutdoorRenderSTP.cpp(621,85): warning C5055: operador '/': preterido entre enumerações e tipos de ponto flutuante
+  (compilando o arquivo fonte '/MapOutdoorRenderSTP.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\GameLib\MapOutdoorRenderSTP.cpp(622,85): warning C5055: operador '/': preterido entre enumerações e tipos de ponto flutuante
+  (compilando o arquivo fonte '/MapOutdoorRenderSTP.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\GameLib\MapOutdoorLoad.cpp(444,64): warning C5055: operador '/': preterido entre enumerações e tipos de ponto flutuante
+  (compilando o arquivo fonte '/MapOutdoorLoad.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\GameLib\MapOutdoorLoad.cpp(445,64): warning C5055: operador '/': preterido entre enumerações e tipos de ponto flutuante
+  (compilando o arquivo fonte '/MapOutdoorLoad.cpp')
+  
+  MapUtil.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\GameLib\AreaTerrain.cpp(448,18): warning C5055: operador '*': preterido entre enumerações e tipos de ponto flutuante
+  (compilando o arquivo fonte '/AreaTerrain.cpp')
+  
+  MonsterAreaInfo.cpp
+  PhysicsObject.cpp
+  Property.cpp
+  PropertyLoader.cpp
+  PropertyManager.cpp
+  RaceData.cpp
+  RaceDataFile.cpp
+  RaceManager.cpp
+  RaceMotionData.cpp
+  SnowEnvironment.cpp
+  SnowParticle.cpp
+  TerrainDecal.cpp
+  TerrainPatch.cpp
+  TerrainQuadtree.cpp
+  WeaponTrace.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\GameLib\MapOutdoorCharacterShadow.cpp(1194,67): warning C4305: 'argumento': truncamento de 'double' para 'FLOAT'
+  (compilando o arquivo fonte '/MapOutdoorCharacterShadow.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\GameLib\MapOutdoorCharacterShadow.cpp(1194,56): warning C4305: 'argumento': truncamento de 'double' para 'FLOAT'
+  (compilando o arquivo fonte '/MapOutdoorCharacterShadow.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\GameLib\MapOutdoorCharacterShadow.cpp(1194,45): warning C4305: 'argumento': truncamento de 'double' para 'FLOAT'
+  (compilando o arquivo fonte '/MapOutdoorCharacterShadow.cpp')
+  
+  gamelib.vcxproj -> D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\GameLib\Release\gamelib.lib

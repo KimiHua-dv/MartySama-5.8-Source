@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\GrpBase.obj",
+            "outputs": [
+                "Release\\GrpBase.cpp.obj.dt.module.json",
+                "Release\\GrpBase.cpp.obj.dt.d.json",
+                "Release\\eterlib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

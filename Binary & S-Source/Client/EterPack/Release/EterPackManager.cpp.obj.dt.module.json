@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\EterPackManager.obj",
+            "outputs": [
+                "Release\\EterPackManager.cpp.obj.dt.module.json",
+                "Release\\EterPackManager.cpp.obj.dt.d.json",
+                "Release\\EterPack.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

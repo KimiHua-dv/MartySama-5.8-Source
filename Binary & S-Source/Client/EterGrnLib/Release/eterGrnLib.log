@@ -1,0 +1,46 @@
+﻿  StdAfx.cpp
+  LODController.cpp
+  Material.cpp
+  Mesh.cpp
+  Model.cpp
+  ModelInstance.cpp
+  ModelInstanceCollisionDetection.cpp
+  ModelInstanceModel.cpp
+  ModelInstanceMotion.cpp
+  ModelInstanceRender.cpp
+  ModelInstanceUpdate.cpp
+  Motion.cpp
+  Thing.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\SphereLib\frustum.h(52,25): warning C4244: 'inicializando': conversão de 'float' para 'int', possível perda de dados
+  (compilando o arquivo fonte '/Thing.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\SphereLib\frustum.h(53,22): warning C4244: 'inicializando': conversão de 'float' para 'int', possível perda de dados
+  (compilando o arquivo fonte '/Thing.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\eterGrnLib\LODController.cpp(458,129): warning C5055: operador '+': preterido entre enumerações e tipos de ponto flutuante
+  (compilando o arquivo fonte '/LODController.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\eterGrnLib\ModelInstanceUpdate.cpp(11,59): warning C5055: operador '*': preterido entre enumerações e tipos de ponto flutuante
+  (compilando o arquivo fonte '/ModelInstanceUpdate.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\SphereLib\frustum.h(52,25): warning C4244: 'inicializando': conversão de 'float' para 'int', possível perda de dados
+  (compilando o arquivo fonte '/ModelInstanceRender.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\SphereLib\frustum.h(52,25): warning C4244: 'inicializando': conversão de 'float' para 'int', possível perda de dados
+  (compilando o arquivo fonte '/Material.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\SphereLib\frustum.h(53,22): warning C4244: 'inicializando': conversão de 'float' para 'int', possível perda de dados
+  (compilando o arquivo fonte '/ModelInstanceRender.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\SphereLib\frustum.h(53,22): warning C4244: 'inicializando': conversão de 'float' para 'int', possível perda de dados
+  (compilando o arquivo fonte '/Material.cpp')
+  
+  ThingInstance.cpp
+  Util.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\SphereLib\frustum.h(52,25): warning C4244: 'inicializando': conversão de 'float' para 'int', possível perda de dados
+  (compilando o arquivo fonte '/ThingInstance.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\SphereLib\frustum.h(53,22): warning C4244: 'inicializando': conversão de 'float' para 'int', possível perda de dados
+  (compilando o arquivo fonte '/ThingInstance.cpp')
+  
+  eterGrnLib.vcxproj -> D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\eterGrnLib\Release\eterGrnLib.lib

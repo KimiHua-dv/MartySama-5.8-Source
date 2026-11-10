@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\PythonPlayerInputMouse.obj",
+            "outputs": [
+                "Release\\PythonPlayerInputMouse.cpp.obj.dt.module.json",
+                "Release\\PythonPlayerInputMouse.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

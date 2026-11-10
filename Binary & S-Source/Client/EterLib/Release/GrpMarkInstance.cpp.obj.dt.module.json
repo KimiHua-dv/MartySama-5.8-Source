@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\GrpMarkInstance.obj",
+            "outputs": [
+                "Release\\GrpMarkInstance.cpp.obj.dt.module.json",
+                "Release\\GrpMarkInstance.cpp.obj.dt.d.json",
+                "Release\\eterlib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

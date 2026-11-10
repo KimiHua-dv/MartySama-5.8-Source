@@ -1,0 +1,7 @@
+﻿  StdAfx.cpp
+  PythonDebugModule.cpp
+  PythonLauncher.cpp
+  PythonMarshal.cpp
+  PythonUtils.cpp
+  Resource.cpp
+  scriptLib.vcxproj -> D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\scriptLib\Release\scriptLib.lib

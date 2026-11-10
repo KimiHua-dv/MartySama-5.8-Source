@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\ShObjIdl_core.obj",
+            "outputs": [
+                "Release\\ShObjIdl_core.h.obj.dt.module.json",
+                "Release\\ShObjIdl_core.h.obj.dt.d.json",
+                "Release\\eterPythonLib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

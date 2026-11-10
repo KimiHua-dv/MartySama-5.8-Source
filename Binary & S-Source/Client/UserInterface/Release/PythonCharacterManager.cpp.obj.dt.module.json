@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\PythonCharacterManager.obj",
+            "outputs": [
+                "Release\\PythonCharacterManager.cpp.obj.dt.module.json",
+                "Release\\PythonCharacterManager.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

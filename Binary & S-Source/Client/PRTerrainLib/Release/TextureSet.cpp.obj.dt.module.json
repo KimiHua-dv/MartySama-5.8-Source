@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\TextureSet.obj",
+            "outputs": [
+                "Release\\TextureSet.cpp.obj.dt.module.json",
+                "Release\\TextureSet.cpp.obj.dt.d.json",
+                "Release\\PRTerrainLib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

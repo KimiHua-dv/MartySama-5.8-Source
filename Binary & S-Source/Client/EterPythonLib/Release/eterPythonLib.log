@@ -1,0 +1,18 @@
+﻿  StdAfx.cpp
+  PythonGraphic.cpp
+  PythonGraphicImageModule.cpp
+  PythonGraphicModule.cpp
+  PythonGraphicTextModule.cpp
+  PythonGraphicThingModule.cpp
+  PythonGridSlotWindow.cpp
+  PythonSlotWindow.cpp
+  PythonWindow.cpp
+  PythonWindowManager.cpp
+  PythonWindowManagerModule.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\eterPythonLib\PythonGraphic.cpp(372,5): warning C4838: a conversão de 'int' em 'unsigned char' requer uma conversão de restrição
+  (compilando o arquivo fonte '/PythonGraphic.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\eterPythonLib\PythonWindow.cpp(1828,25): warning C4267: '=': conversão de 'size_t' para 'unsigned char', possível perda de dados
+  (compilando o arquivo fonte '/PythonWindow.cpp')
+  
+  eterPythonLib.vcxproj -> D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\eterPythonLib\Release\eterPythonLib.lib

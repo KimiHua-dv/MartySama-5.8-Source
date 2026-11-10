@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\FlyingInstance.obj",
+            "outputs": [
+                "Release\\FlyingInstance.cpp.obj.dt.module.json",
+                "Release\\FlyingInstance.cpp.obj.dt.d.json",
+                "Release\\gamelib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

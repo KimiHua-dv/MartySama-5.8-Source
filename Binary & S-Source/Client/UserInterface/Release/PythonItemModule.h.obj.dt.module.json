@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\PythonItemModule.obj",
+            "outputs": [
+                "Release\\PythonItemModule.h.obj.dt.module.json",
+                "Release\\PythonItemModule.h.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

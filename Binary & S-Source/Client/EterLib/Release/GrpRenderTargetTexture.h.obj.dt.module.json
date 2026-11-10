@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\GrpRenderTargetTexture.obj",
+            "outputs": [
+                "Release\\GrpRenderTargetTexture.h.obj.dt.module.json",
+                "Release\\GrpRenderTargetTexture.h.obj.dt.d.json",
+                "Release\\eterlib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

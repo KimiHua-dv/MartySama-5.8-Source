@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\Locale_inc.obj",
+            "outputs": [
+                "Release\\Locale_inc.h.obj.dt.module.json",
+                "Release\\Locale_inc.h.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

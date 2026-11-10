@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\PythonSkill.obj",
+            "outputs": [
+                "Release\\PythonSkill.cpp.obj.dt.module.json",
+                "Release\\PythonSkill.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

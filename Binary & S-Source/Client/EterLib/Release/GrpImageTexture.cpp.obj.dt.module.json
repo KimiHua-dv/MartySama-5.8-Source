@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\GrpImageTexture.obj",
+            "outputs": [
+                "Release\\GrpImageTexture.cpp.obj.dt.module.json",
+                "Release\\GrpImageTexture.cpp.obj.dt.d.json",
+                "Release\\eterlib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

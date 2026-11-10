@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\modsupport.obj",
+            "outputs": [
+                "Release\\modsupport.h.obj.dt.module.json",
+                "Release\\modsupport.h.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

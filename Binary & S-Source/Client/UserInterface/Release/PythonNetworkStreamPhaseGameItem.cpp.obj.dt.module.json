@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\PythonNetworkStreamPhaseGameItem.obj",
+            "outputs": [
+                "Release\\PythonNetworkStreamPhaseGameItem.cpp.obj.dt.module.json",
+                "Release\\PythonNetworkStreamPhaseGameItem.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

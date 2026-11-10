@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\PythonSystemModule.obj",
+            "outputs": [
+                "Release\\PythonSystemModule.cpp.obj.dt.module.json",
+                "Release\\PythonSystemModule.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

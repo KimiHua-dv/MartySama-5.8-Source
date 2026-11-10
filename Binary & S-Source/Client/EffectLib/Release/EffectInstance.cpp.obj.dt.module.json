@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\EffectInstance.obj",
+            "outputs": [
+                "Release\\EffectInstance.cpp.obj.dt.module.json",
+                "Release\\EffectInstance.cpp.obj.dt.d.json",
+                "Release\\EffectLib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

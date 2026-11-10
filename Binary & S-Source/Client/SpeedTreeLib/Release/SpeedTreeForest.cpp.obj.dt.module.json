@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\SpeedTreeForest.obj",
+            "outputs": [
+                "Release\\SpeedTreeForest.cpp.obj.dt.module.json",
+                "Release\\SpeedTreeForest.cpp.obj.dt.d.json"
+            ],
+            "requires": []
+        }
+    ]
+}

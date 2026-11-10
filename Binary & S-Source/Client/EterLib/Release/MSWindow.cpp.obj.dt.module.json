@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\MSWindow.obj",
+            "outputs": [
+                "Release\\MSWindow.cpp.obj.dt.module.json",
+                "Release\\MSWindow.cpp.obj.dt.d.json",
+                "Release\\eterlib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

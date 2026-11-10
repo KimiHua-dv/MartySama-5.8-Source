@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\ItemManager.obj",
+            "outputs": [
+                "Release\\ItemManager.h.obj.dt.module.json",
+                "Release\\ItemManager.h.obj.dt.d.json",
+                "Release\\gamelib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

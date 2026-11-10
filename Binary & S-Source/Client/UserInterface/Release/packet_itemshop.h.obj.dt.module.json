@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\packet_itemshop.obj",
+            "outputs": [
+                "Release\\packet_itemshop.h.obj.dt.module.json",
+                "Release\\packet_itemshop.h.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

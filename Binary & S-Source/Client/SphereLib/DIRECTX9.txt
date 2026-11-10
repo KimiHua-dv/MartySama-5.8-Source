@@ -1,0 +1,3 @@
+Actualización de SphereLib a DX9.
+
+Rendimiento (CPU Y GPU) actializado.

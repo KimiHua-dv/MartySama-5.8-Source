@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\ActorInstance.obj",
+            "outputs": [
+                "Release\\ActorInstance.cpp.obj.dt.module.json",
+                "Release\\ActorInstance.cpp.obj.dt.d.json",
+                "Release\\gamelib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

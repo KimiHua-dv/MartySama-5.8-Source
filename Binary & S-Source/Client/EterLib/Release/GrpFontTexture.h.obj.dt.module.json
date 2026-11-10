@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\GrpFontTexture.obj",
+            "outputs": [
+                "Release\\GrpFontTexture.h.obj.dt.module.json",
+                "Release\\GrpFontTexture.h.obj.dt.d.json",
+                "Release\\eterlib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

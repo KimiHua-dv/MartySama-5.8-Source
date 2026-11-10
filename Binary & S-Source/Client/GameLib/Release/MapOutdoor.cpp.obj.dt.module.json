@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\MapOutdoor.obj",
+            "outputs": [
+                "Release\\MapOutdoor.cpp.obj.dt.module.json",
+                "Release\\MapOutdoor.cpp.obj.dt.d.json",
+                "Release\\gamelib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\MapOutdoorCharacterShadow.obj",
+            "outputs": [
+                "Release\\MapOutdoorCharacterShadow.cpp.obj.dt.module.json",
+                "Release\\MapOutdoorCharacterShadow.cpp.obj.dt.d.json",
+                "Release\\gamelib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

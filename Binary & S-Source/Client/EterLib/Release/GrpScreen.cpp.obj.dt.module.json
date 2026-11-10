@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\GrpScreen.obj",
+            "outputs": [
+                "Release\\GrpScreen.cpp.obj.dt.module.json",
+                "Release\\GrpScreen.cpp.obj.dt.d.json",
+                "Release\\eterlib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

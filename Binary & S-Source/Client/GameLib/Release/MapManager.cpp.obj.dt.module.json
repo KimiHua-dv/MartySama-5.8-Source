@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\MapManager.obj",
+            "outputs": [
+                "Release\\MapManager.cpp.obj.dt.module.json",
+                "Release\\MapManager.cpp.obj.dt.d.json",
+                "Release\\gamelib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

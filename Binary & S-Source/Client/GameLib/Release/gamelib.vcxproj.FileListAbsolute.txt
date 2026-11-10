@@ -1,0 +1,4 @@
+C:\Users\javie\Desktop\MartySama 5.8 (Gráficos)\Binario & Source\Binario\Client\GameLib\Release\gamelib.lib
+C:\Users\jmeri\Desktop\viello\MartySama 5.8 (Gráficos)\Binario & Source\Binario\Client\GameLib\Release\gamelib.lib
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\GameLib\Release\gamelib.lib
+D:\Download\MartySama 5.8\MartySama 5.8\Binary & S-Source\Binary\Client\GameLib\Release\gamelib.lib

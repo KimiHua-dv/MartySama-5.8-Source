@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\InstanceBaseEffect.obj",
+            "outputs": [
+                "Release\\InstanceBaseEffect.cpp.obj.dt.module.json",
+                "Release\\InstanceBaseEffect.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

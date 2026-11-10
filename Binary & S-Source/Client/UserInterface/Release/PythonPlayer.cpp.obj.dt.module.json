@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\PythonPlayer.obj",
+            "outputs": [
+                "Release\\PythonPlayer.cpp.obj.dt.module.json",
+                "Release\\PythonPlayer.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

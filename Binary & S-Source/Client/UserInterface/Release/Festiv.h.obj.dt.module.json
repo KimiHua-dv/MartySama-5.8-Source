@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\Festiv.obj",
+            "outputs": [
+                "Release\\Festiv.h.obj.dt.module.json",
+                "Release\\Festiv.h.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

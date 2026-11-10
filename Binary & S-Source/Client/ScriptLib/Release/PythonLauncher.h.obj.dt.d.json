@@ -1,0 +1,19 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "d:\\download\\martysama 5.8\\martysama 5.8\\binary & s-source\\binary\\client\\scriptlib\\pythonlauncher.h",
+        "ProvidedModule": "",
+        "Includes": [
+            "d:\\download\\martysama 5.8\\martysama 5.8\\binary & s-source\\binary\\extern\\include\\python27\\frameobject.h",
+            "d:\\download\\martysama 5.8\\martysama 5.8\\binary & s-source\\binary\\client\\eterbase\\singleton.h",
+            "c:\\program files (x86)\\windows kits\\10\\include\\10.0.26100.0\\ucrt\\assert.h",
+            "c:\\program files (x86)\\windows kits\\10\\include\\10.0.26100.0\\ucrt\\corecrt.h",
+            "c:\\program files\\microsoft visual studio\\18\\community\\vc\\tools\\msvc\\14.44.35207\\include\\vcruntime.h",
+            "c:\\program files\\microsoft visual studio\\18\\community\\vc\\tools\\msvc\\14.44.35207\\include\\sal.h",
+            "c:\\program files\\microsoft visual studio\\18\\community\\vc\\tools\\msvc\\14.44.35207\\include\\concurrencysal.h",
+            "c:\\program files\\microsoft visual studio\\18\\community\\vc\\tools\\msvc\\14.44.35207\\include\\vadefs.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

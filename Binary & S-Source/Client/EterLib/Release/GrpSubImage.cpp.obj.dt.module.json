@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\GrpSubImage.obj",
+            "outputs": [
+                "Release\\GrpSubImage.cpp.obj.dt.module.json",
+                "Release\\GrpSubImage.cpp.obj.dt.d.json",
+                "Release\\eterlib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

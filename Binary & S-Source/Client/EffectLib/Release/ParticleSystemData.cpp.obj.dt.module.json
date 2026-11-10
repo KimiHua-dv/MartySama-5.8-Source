@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\ParticleSystemData.obj",
+            "outputs": [
+                "Release\\ParticleSystemData.cpp.obj.dt.module.json",
+                "Release\\ParticleSystemData.cpp.obj.dt.d.json",
+                "Release\\EffectLib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

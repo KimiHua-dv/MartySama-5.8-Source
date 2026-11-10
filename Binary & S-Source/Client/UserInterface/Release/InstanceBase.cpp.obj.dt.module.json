@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\InstanceBase.obj",
+            "outputs": [
+                "Release\\InstanceBase.cpp.obj.dt.module.json",
+                "Release\\InstanceBase.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

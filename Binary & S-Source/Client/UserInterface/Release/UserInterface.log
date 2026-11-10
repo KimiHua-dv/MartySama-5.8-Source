@@ -1,0 +1,167 @@
+﻿C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(524,5): warning MSB8004: o diretório Output não termina com uma barra à direita. Essa instância de compilação adicionará a barra conforme necessário para permitir a avaliação adequada do Diretório Output.
+  StdAfx.cpp
+  AccountConnector.cpp
+  AffectFlagContainer.cpp
+  CPythonRenderTargetModule.cpp
+  CameraProcedure.cpp
+  CheckLatestFiles.cpp
+  GameType.cpp
+  GuildMarkDownloader.cpp
+  GuildMarkUploader.cpp
+  InstanceBase.cpp
+  InstanceBaseBattle.cpp
+  InstanceBaseEffect.cpp
+  InstanceBaseEvent.cpp
+  InstanceBaseMotion.cpp
+  InstanceBaseMovement.cpp
+  InstanceBaseTransform.cpp
+  InsultChecker.cpp
+  Locale.cpp
+  MarkImage.cpp
+  MarkManager.cpp
+  MovieMan.cpp
+  NetworkActorManager.cpp
+  PostProcessingChain.cpp
+  PostProcessingEffect.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\MarkManager.cpp(99,78): warning C4834: descartando o valor retornado da função com o atributo [[nodiscard]]
+  (compilando o arquivo fonte '/MarkManager.cpp')
+  
+  ProcessCRC.cpp
+  ProcessScanner.cpp
+  PythonAcce.cpp
+  PythonApplication.cpp
+  PythonApplicationCamera.cpp
+  PythonApplicationCursor.cpp
+  PythonApplicationEvent.cpp
+  PythonApplicationLogo.cpp
+  PythonApplicationModule.cpp
+  PythonApplicationProcedure.cpp
+  PythonApplicationWebPage.cpp
+  PythonBackground.cpp
+  PythonBackgroundModule.cpp
+  PythonCharacterManager.cpp
+  PythonCharacterManagerModule.cpp
+  PythonCharacterModule.cpp
+  PythonChat.cpp
+  PythonChatModule.cpp
+  PythonEffectModule.cpp
+  PythonEventManager.cpp
+  PythonEventManagerModule.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\SpeedTreeLib\VertexShaders.h(174,20): warning C4477: 'sprintf': a cadeia de formato '%s' requer um argumento do tipo 'char *', mas um argumento variadic 1 tem o tipo 'LPVOID'
+  (compilando o arquivo fonte '/PythonBackground.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonChat.cpp(763,16): warning C4838: a conversão de 'float' em 'LONG' requer uma conversão de restrição
+  (compilando o arquivo fonte '/PythonChat.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonChat.cpp(763,20): warning C4838: a conversão de 'float' em 'LONG' requer uma conversão de restrição
+  (compilando o arquivo fonte '/PythonChat.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonChat.cpp(763,26): warning C4838: a conversão de 'float' em 'LONG' requer uma conversão de restrição
+  (compilando o arquivo fonte '/PythonChat.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonChat.cpp(763,39): warning C4838: a conversão de 'float' em 'LONG' requer uma conversão de restrição
+  (compilando o arquivo fonte '/PythonChat.cpp')
+  
+  PythonExceptionSender.cpp
+  PythonExchange.cpp
+  PythonExchangeModule.cpp
+  PythonFlyModule.cpp
+  PythonGameEventManagerModule.cpp
+  PythonGuild.cpp
+  PythonIME.cpp
+  PythonIMEModule.cpp
+  PythonItem.cpp
+  PythonItemModule.cpp
+  PythonMessenger.cpp
+  PythonMiniMap.cpp
+  PythonMiniMapModule.cpp
+  PythonNetworkDatagram.cpp
+  PythonNetworkDatagramModule.cpp
+  PythonNetworkStream.cpp
+  PythonNetworkStreamCommand.cpp
+  PythonNetworkStreamEvent.cpp
+  PythonNetworkStreamModule.cpp
+  PythonNetworkStreamPhaseGame.cpp
+  PythonNetworkStreamPhaseGameActor.cpp
+  PythonNetworkStreamPhaseGameItem.cpp
+  PythonNetworkStreamPhaseHandShake.cpp
+  PythonNetworkStreamPhaseLoading.cpp
+  PythonNetworkStreamPhaseLogin.cpp
+  PythonNetworkStreamPhaseOffline.cpp
+  PythonNetworkStreamPhaseSelect.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonMiniMap.cpp(965,40): warning C5055: operador '*': preterido entre enumerações e tipos de ponto flutuante
+  (compilando o arquivo fonte '/PythonMiniMap.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonMiniMap.cpp(966,40): warning C5055: operador '*': preterido entre enumerações e tipos de ponto flutuante
+  (compilando o arquivo fonte '/PythonMiniMap.cpp')
+  
+  PythonNonPlayer.cpp
+  PythonNonPlayerModule.cpp
+  PythonPackModule.cpp
+  PythonPlayer.cpp
+  PythonPlayerEventHandler.cpp
+  PythonPlayerInput.cpp
+  PythonPlayerInputKeyboard.cpp
+  PythonPlayerInputMouse.cpp
+  PythonPlayerModule.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonNetworkStreamPhaseGame.cpp(1780,45): warning C4267: 'argumento': conversão de 'size_t' para 'unsigned char', possível perda de dados
+  (compilando o arquivo fonte '/PythonNetworkStreamPhaseGame.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonNetworkStreamPhaseGame.cpp(1781,41): warning C4267: 'argumento': conversão de 'size_t' para 'unsigned char', possível perda de dados
+  (compilando o arquivo fonte '/PythonNetworkStreamPhaseGame.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonNetworkStreamPhaseGame.cpp(1788,43): warning C4267: 'argumento': conversão de 'size_t' para 'unsigned char', possível perda de dados
+  (compilando o arquivo fonte '/PythonNetworkStreamPhaseGame.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonNetworkStreamPhaseGame.cpp(4001,42): warning C4267: '=': conversão de 'size_t' para 'unsigned char', possível perda de dados
+  (compilando o arquivo fonte '/PythonNetworkStreamPhaseGame.cpp')
+  
+  PythonPlayerSettingsModule.cpp
+  PythonPlayerSkill.cpp
+  PythonPrivateShop.cpp
+  PythonPrivateShopManager.cpp
+  PythonPrivateShopModule.cpp
+  PythonProfilerModule.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonPrivateShop.cpp(287,27): warning C4267: 'argumento': conversão de 'size_t' para '_Ty', possível perda de dados
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonPrivateShop.cpp(287,27): warning C4267:         with
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonPrivateShop.cpp(287,27): warning C4267:         [
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonPrivateShop.cpp(287,27): warning C4267:             _Ty=WORD
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonPrivateShop.cpp(287,27): warning C4267:         ]
+  (compilando o arquivo fonte '/PythonPrivateShop.cpp')
+  
+  PythonQuest.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonPlayerSettingsModule.cpp(527,7): warning C4101: 'szSkillName': variável local não referenciada
+  (compilando o arquivo fonte '/PythonPlayerSettingsModule.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonPlayerSettingsModule.cpp(800,7): warning C4101: 'szSkillName': variável local não referenciada
+  (compilando o arquivo fonte '/PythonPlayerSettingsModule.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonPlayerSettingsModule.cpp(1116,7): warning C4101: 'szSkillName': variável local não referenciada
+  (compilando o arquivo fonte '/PythonPlayerSettingsModule.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonPlayerSettingsModule.cpp(1607,7): warning C4101: 'szSkillName': variável local não referenciada
+  (compilando o arquivo fonte '/PythonPlayerSettingsModule.cpp')
+  
+  PythonSafeBox.cpp
+  PythonShop.cpp
+  PythonSkill.cpp
+  PythonSoundManagerModule.cpp
+  PythonSystem.cpp
+  PythonSystemModule.cpp
+  PythonTextTail.cpp
+  PythonTextTailModule.cpp
+  ServerStateChecker.cpp
+  ServerStateCheckerModule.cpp
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonPrivateShopManager.cpp(202,72): warning C5055: operador '*': preterido entre enumerações e tipos de ponto flutuante
+  (compilando o arquivo fonte '/PythonPrivateShopManager.cpp')
+  
+D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Binary & S-Source\Binary\Client\UserInterface\PythonTextTail.cpp(429,95): warning C5055: operador '*': preterido entre enumerações e tipos de ponto flutuante
+  (compilando o arquivo fonte '/PythonTextTail.cpp')
+  
+  UserInterface.cpp
+  libjpeg-MT.lib(jerror.obj) : MSIL .netmodule ou módulo compilado com /GL encontrado; reiniciando link com /LTCG; adicione /LTCG ao link da linha de comando para melhorar performance do vinculador
+  Gerando código
+  Finalizada a geração de código
+  UserInterface.vcxproj -> D:\Download\MartySama 5.8 (Grafik)\MartySama 5.8 (Grafik)\Cliente\metin2client.exe
+  copying launcher to debug working path...
+          1 arquivo(s) copiado(s).

@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\PythonWindowManagerModule.obj",
+            "outputs": [
+                "Release\\PythonWindowManagerModule.cpp.obj.dt.module.json",
+                "Release\\PythonWindowManagerModule.cpp.obj.dt.d.json",
+                "Release\\eterPythonLib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\CPythonRenderTargetModule.obj",
+            "outputs": [
+                "Release\\CPythonRenderTargetModule.h.obj.dt.module.json",
+                "Release\\CPythonRenderTargetModule.h.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

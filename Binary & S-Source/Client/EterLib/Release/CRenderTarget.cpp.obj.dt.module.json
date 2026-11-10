@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\CRenderTarget.obj",
+            "outputs": [
+                "Release\\CRenderTarget.cpp.obj.dt.module.json",
+                "Release\\CRenderTarget.cpp.obj.dt.d.json",
+                "Release\\eterlib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

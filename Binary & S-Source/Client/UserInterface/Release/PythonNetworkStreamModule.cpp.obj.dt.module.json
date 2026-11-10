@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\PythonNetworkStreamModule.obj",
+            "outputs": [
+                "Release\\PythonNetworkStreamModule.cpp.obj.dt.module.json",
+                "Release\\PythonNetworkStreamModule.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

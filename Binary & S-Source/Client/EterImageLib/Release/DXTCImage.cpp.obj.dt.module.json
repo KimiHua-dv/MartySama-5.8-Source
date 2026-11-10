@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\DXTCImage.obj",
+            "outputs": [
+                "Release\\DXTCImage.cpp.obj.dt.module.json",
+                "Release\\DXTCImage.cpp.obj.dt.d.json",
+                "Release\\eterImageLib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\PythonAcce.obj",
+            "outputs": [
+                "Release\\PythonAcce.cpp.obj.dt.module.json",
+                "Release\\PythonAcce.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

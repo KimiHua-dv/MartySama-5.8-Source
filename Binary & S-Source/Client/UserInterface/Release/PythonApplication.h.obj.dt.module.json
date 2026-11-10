@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\PythonApplication.obj",
+            "outputs": [
+                "Release\\PythonApplication.h.obj.dt.module.json",
+                "Release\\PythonApplication.h.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

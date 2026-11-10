@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\EffectMesh.obj",
+            "outputs": [
+                "Release\\EffectMesh.cpp.obj.dt.module.json",
+                "Release\\EffectMesh.cpp.obj.dt.d.json",
+                "Release\\EffectLib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

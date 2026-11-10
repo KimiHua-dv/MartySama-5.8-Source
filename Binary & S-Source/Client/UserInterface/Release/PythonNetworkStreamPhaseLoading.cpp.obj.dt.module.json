@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\PythonNetworkStreamPhaseLoading.obj",
+            "outputs": [
+                "Release\\PythonNetworkStreamPhaseLoading.cpp.obj.dt.module.json",
+                "Release\\PythonNetworkStreamPhaseLoading.cpp.obj.dt.d.json",
+                "Release\\UserInterface.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\MappedFile.obj",
+            "outputs": [
+                "Release\\MappedFile.cpp.obj.dt.module.json",
+                "Release\\MappedFile.cpp.obj.dt.d.json",
+                "Release\\eterBase.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

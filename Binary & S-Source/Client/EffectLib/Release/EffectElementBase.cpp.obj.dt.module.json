@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\EffectElementBase.obj",
+            "outputs": [
+                "Release\\EffectElementBase.cpp.obj.dt.module.json",
+                "Release\\EffectElementBase.cpp.obj.dt.d.json",
+                "Release\\EffectLib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

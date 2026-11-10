@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\RaceManager.obj",
+            "outputs": [
+                "Release\\RaceManager.cpp.obj.dt.module.json",
+                "Release\\RaceManager.cpp.obj.dt.d.json",
+                "Release\\gamelib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

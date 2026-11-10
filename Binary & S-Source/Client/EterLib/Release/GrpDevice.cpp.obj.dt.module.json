@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Release\\GrpDevice.obj",
+            "outputs": [
+                "Release\\GrpDevice.cpp.obj.dt.module.json",
+                "Release\\GrpDevice.cpp.obj.dt.d.json",
+                "Release\\eterlib.pch"
+            ],
+            "requires": []
+        }
+    ]
+}
