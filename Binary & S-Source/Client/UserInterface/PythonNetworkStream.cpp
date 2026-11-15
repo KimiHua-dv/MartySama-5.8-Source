@@ -948,12 +948,26 @@ bool CPythonNetworkStream::SendFestivalOpen()
 
 	packet.header = HEADER_CG_FESTIVAL;
 	packet.subheader = FEST_GUILD_OPEN;
+	packet.template_id = 0;
 
 	if (!Send(sizeof(packet), &packet))
 		return false;
 
 	return true;
 
+}
+
+bool CPythonNetworkStream::SendFestivalMissionAccept(DWORD templateID)
+{
+	if (templateID == 0)
+		return false;
+
+	TPacketCGFestivGuild packet;
+	packet.header = HEADER_CG_FESTIVAL;
+	packet.subheader = FEST_CG_ACCEPT_MISSION;
+	packet.template_id = templateID;
+
+	return Send(sizeof(packet), &packet);
 }
 
 //item_SHOP

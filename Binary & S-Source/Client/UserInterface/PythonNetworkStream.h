@@ -342,6 +342,7 @@ class CPythonNetworkStream : public CNetworkStream, public CSingleton<CPythonNet
 		//item_shop
 		bool SendItemShopOpen();
 		bool SendFestivalOpen();
+		bool SendFestivalMissionAccept(DWORD templateID);
 		bool SendItemShopCategory(BYTE category);
 		bool SendItemShopBuy(DWORD itemID);
 		bool SendItemShopAdminAddItem(DWORD vnum, DWORD count, DWORD price, BYTE discount, BYTE category, BYTE currencyType, DWORD currencyVnum);

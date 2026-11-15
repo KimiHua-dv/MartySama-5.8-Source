@@ -1675,6 +1675,21 @@ PyObject* netSendFestivalOpen(PyObject* poSelf, PyObject* poArgs)
 	return Py_BuildNone();
 }
 
+PyObject* netSendFestivalMissionAccept(PyObject* poSelf, PyObject* poArgs)
+{
+	int missionID;
+	if (!PyTuple_GetInteger(poArgs, 0, &missionID) || missionID <= 0)
+		return Py_BuildException();
+
+	CPythonNetworkStream& rkNetStream =
+		CPythonNetworkStream::Instance();
+
+	if (!rkNetStream.SendFestivalMissionAccept(static_cast<DWORD>(missionID)))
+		return Py_BuildException();
+
+	return Py_BuildNone();
+}
+
 //item_Shop
 PyObject* netSendItemShopOpen(PyObject* poSelf, PyObject* poArgs)
 {
@@ -2478,6 +2493,7 @@ void initnet()
 		{ "SendItemShopAdminAddItem",				netSendItemShopAdminAddItem,				METH_VARARGS },
 
 		{ "SendFestivalOpen",						netSendFestivalOpen,						METH_VARARGS },
+		{ "SendFestivalMissionAccept", 				netSendFestivalMissionAccept,					METH_VARARGS },
 
 #ifdef ENABLE_SHOW_CHEST_DROP
 		{ "SendChestDropInfo",						netSendChestDropInfo,						METH_VARARGS },
