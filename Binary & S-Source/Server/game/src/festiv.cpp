@@ -462,8 +462,22 @@ namespace Festival
 					sys_err("Festival: erro ao finalizar missoes durante encerramento");
 					return false;
 				}
+				
+				// 2. Zera o ciclo das missoes.
+				auto resetMsg = DBManager::instance().DirectQuery(
+					"UPDATE srv1_player.festival_guild_mission "
+					"SET cycle_id = 0 "
+					"WHERE event_id = %u",
+					FESTIVAL_EVENT_ID
+				);
 
-				// 2. Fecha o evento.
+				if (!resetMsg || resetMsg->uiSQLErrno != 0 || !resetMsg->Get())
+				{
+					sys_err("Festival: erro ao zerar cycle_id das missoes");
+					return false;
+				}
+
+				// 3. Fecha o evento.
 				auto closeMsg = DBManager::instance().DirectQuery(
 					"UPDATE srv1_player.festival_event "
 					"SET status = 'CLOSED', "
@@ -680,6 +694,22 @@ namespace Festival
 				sys_err("Festival: erro ao encerrar missoes do evento");
 				return false;
 			}
+			
+			
+			// 2. Zera o ciclo das missoes.
+			auto resetMsg = DBManager::instance().DirectQuery(
+				"UPDATE srv1_player.festival_guild_mission "
+				"SET cycle_id = 0 "
+				"WHERE event_id = %u",
+				FESTIVAL_EVENT_ID
+			);
+
+			if (!resetMsg || resetMsg->uiSQLErrno != 0 || !resetMsg->Get())
+			{
+				sys_err("Festival: erro ao zerar cycle_id das missoes");
+				return false;
+			}
+
 
 			auto closeMsg = DBManager::instance().DirectQuery(
 				"UPDATE srv1_player.festival_event "
@@ -1269,18 +1299,97 @@ namespace Festival
 
 		SQLResult* pResult = pmsg->Get();
 
+		
 		if (pResult->uiAffectedRows != 1)
 		{
 			sys_err("Festival: evento inexistente ou ja ativo");
 			return false;
 		}
 
+		// Limpa historico PvP da edicao anterior.
+		auto pvpMsg = DBManager::instance().DirectQuery(
+			"DELETE FROM srv1_player.festival_pvp_history "
+			"WHERE event_id = %u",
+			FESTIVAL_EVENT_ID
+		);
+
+		if (!pvpMsg || pvpMsg->uiSQLErrno != 0 || !pvpMsg->Get())
+		{
+			sys_err("Festival: erro ao limpar historico PvP");
+			return false;
+		}
+
+		// Limpa o contador individual de missoes aceitas.
+		auto playerStateMsg = DBManager::instance().DirectQuery(
+			"DELETE FROM srv1_player.festival_player_state "
+			"WHERE event_id = %u",
+			FESTIVAL_EVENT_ID
+		);
+
+		if (!playerStateMsg ||
+			playerStateMsg->uiSQLErrno != 0 ||
+			!playerStateMsg->Get())
+		{
+			sys_err("Festival: erro ao limpar estado individual dos jogadores");
+			return false;
+		}
+		
+		// Limpa o contador pontos.
+		auto pontosResetMsg = DBManager::instance().DirectQuery(
+			"UPDATE srv1_player.festival_guild_state "
+			"SET "
+			"completed_missions = 0, "
+			"renewal_count = 0, "
+			"reward_progress = 0, "
+			"pending_points = 0, "
+			"claimed_chests = 0, "
+			"total_points = 0 "
+			"WHERE event_id = %u",
+			FESTIVAL_EVENT_ID
+		);
+
+		if (!pontosResetMsg ||
+			pontosResetMsg->uiSQLErrno != 0 ||
+			!pontosResetMsg->Get())
+		{
+			sys_err("Festival: erro ao limpar pontos da Guilda");
+			return false;
+		}
+		
+		// Limpa missões.
+		auto missionResetMsg = DBManager::instance().DirectQuery(
+			"DELETE FROM srv1_player.festival_guild_mission "
+			"WHERE event_id = %u",
+			FESTIVAL_EVENT_ID
+		);
+
+		if (!missionResetMsg ||
+			missionResetMsg->uiSQLErrno != 0 ||
+			!missionResetMsg->Get())
+		{
+			sys_err("Festival: erro ao limpar missões");
+			return false;
+		}
+		
+		// voltar id a 0.
+		auto resetID = DBManager::instance().DirectQuery(
+			"ALTER TABLE festival_guild_mission AUTO_INCREMENT = 0"
+		);
+
+		if (!resetID ||
+			resetID->uiSQLErrno != 0 ||
+			!resetID->Get())
+		{
+			sys_err("Festival: erro ao resetar Ids");
+			return false;
+		}
 		// Distribui as missoes do primeiro ciclo.
 		if (!DistributeMissionsForAllGuilds(1))
 		{
 			sys_err("Festival: falha na distribuicao do ciclo 1");
 			return false;
 		}
+
 
 		// Somente agora o evento pode ser ativado.
 		pmsg = DBManager::instance().DirectQuery(
@@ -1316,8 +1425,40 @@ namespace Festival
 	}
 
 
+	
+	
 	bool CloseEvent()
 	{
+		// 1. Finaliza as missoes ainda pendentes.
+		auto missionMsg = DBManager::instance().DirectQuery(
+			"UPDATE srv1_player.festival_guild_mission "
+			"SET status = 'FAILED' "
+			"WHERE event_id = %u "
+			"AND status IN ('AVAILABLE', 'IN_PROGRESS')",
+			FESTIVAL_EVENT_ID
+		);
+
+		if (!missionMsg || missionMsg->uiSQLErrno != 0 || !missionMsg->Get())
+		{
+			sys_err("Festival: erro ao finalizar missoes no encerramento");
+			return false;
+		}
+
+		// 2. Zera o ciclo das missoes antigas.
+		auto resetMsg = DBManager::instance().DirectQuery(
+			"UPDATE srv1_player.festival_guild_mission "
+			"SET cycle_id = 0 "
+			"WHERE event_id = %u",
+			FESTIVAL_EVENT_ID
+		);
+
+		if (!resetMsg || resetMsg->uiSQLErrno != 0 || !resetMsg->Get())
+		{
+			sys_err("Festival: erro ao zerar cycle_id das missoes");
+			return false;
+		}
+		
+		// 3. Fecha o evento.
 		auto pmsg = DBManager::instance().DirectQuery(
 			"UPDATE srv1_player.festival_event "
 			"SET status = 'CLOSED', "
@@ -1326,14 +1467,6 @@ namespace Festival
 			"WHERE id = %u",
 			FESTIVAL_EVENT_ID
 		);
-		
-		SQLResult* pResult = pmsg->Get();
-
-		if (pResult->uiAffectedRows != 1)
-		{
-			sys_err("Festival: registro do evento nao encontrado");
-			return false;
-		}
 
 		if (!pmsg || pmsg->uiSQLErrno != 0 || !pmsg->Get())
 		{
@@ -1341,13 +1474,23 @@ namespace Festival
 			return false;
 		}
 
+		if (pmsg->Get()->uiAffectedRows != 1)
+		{
+			sys_err("Festival: registro do evento nao encontrado");
+			return false;
+		}
+
 		quest::CQuestManager::instance().RequestSetEventFlag(
-			"festival_guild", 0);
+			"festival_guild", 0
+		);
 
 		sys_log(0, "Festival: evento %u encerrado", FESTIVAL_EVENT_ID);
 
 		return true;
 	}
+
+
+
 
 	void OnMetinKilled(LPCHARACTER ch, DWORD metinVnum)
 	{
@@ -1365,8 +1508,9 @@ namespace Festival
 		const DWORD playerID = ch->GetPlayerID();
 		const DWORD guildID = guild->GetID();
 
+		// Consulta a missão ativa do jogador.
 		auto pmsg = DBManager::instance().DirectQuery(
-			"SELECT mission.id, mission.progress, mission.target_count "
+			"SELECT mission.id, mission.progress, mission.target_count, mission.points "
 			"FROM srv1_player.festival_guild_mission AS mission "
 			"INNER JOIN srv1_player.festival_event AS event "
 			"ON event.id = mission.event_id "
@@ -1374,6 +1518,7 @@ namespace Festival
 			"ON template.id = mission.template_id "
 			"WHERE mission.event_id = %u "
 			"AND mission.cycle_id = event.current_cycle "
+			"AND event.status = 'ACTIVE' "
 			"AND mission.guild_id = %u "
 			"AND mission.player_id = %u "
 			"AND mission.status = 'IN_PROGRESS' "
@@ -1388,7 +1533,7 @@ namespace Festival
 			metinVnum
 		);
 
-		SQLResult* pResult = GetSelectResult(pmsg,"consultar missao de metin");
+		SQLResult* pResult = GetSelectResult(pmsg, "consultar missao de metin");
 
 		if (!pResult)
 			return;
@@ -1398,7 +1543,31 @@ namespace Festival
 		if (!row || !row[0])
 			return;
 
-		sys_log(0,"Festival: jogador %u destruiu metin %u. Missao encontrada: %s",playerID,	metinVnum,row[0]);
+		const DWORD missionID = atoi(row[0]);
+
+		DWORD missionPoints = 0;
+		str_to_number(missionPoints, row[3]);
+
+		sys_log(
+			0,
+			"Festival: jogador %u destruiu metin %u. Missao encontrada: %u",
+			playerID,
+			metinVnum,
+			missionID
+		);
+
+		// Inicia a transação antes de alterar o progresso.
+		auto transactionMsg = DBManager::instance().DirectQuery(
+			"START TRANSACTION"
+		);
+
+		if (!transactionMsg || transactionMsg->uiSQLErrno != 0)
+		{
+			sys_err("Festival: erro ao iniciar transacao da missao de metin");
+			return;
+		}
+
+		// Primeiro tenta atualizar uma missão que ainda não atingiu o objetivo.
 		auto updateMsg = DBManager::instance().DirectQuery(
 			"UPDATE srv1_player.festival_guild_mission AS mission "
 			"INNER JOIN srv1_player.festival_event AS event "
@@ -1406,7 +1575,8 @@ namespace Festival
 			"INNER JOIN srv1_player.festival_mission_template AS template "
 			"ON template.id = mission.template_id "
 			"SET mission.progress = mission.progress + 1 "
-			"WHERE mission.event_id = %u "
+			"WHERE mission.id = %u "
+			"AND mission.event_id = %u "
 			"AND mission.cycle_id = event.current_cycle "
 			"AND event.status = 'ACTIVE' "
 			"AND mission.guild_id = %u "
@@ -1417,44 +1587,51 @@ namespace Festival
 			"AND (template.target_vnum = 0 "
 			"OR template.target_vnum = %u) "
 			"AND mission.expires_at > NOW()",
+			missionID,
 			FESTIVAL_EVENT_ID,
 			guildID,
 			playerID,
 			metinVnum
 		);
 
-		if (!updateMsg || updateMsg->uiSQLErrno != 0)
+		if (!updateMsg || updateMsg->uiSQLErrno != 0 || !updateMsg->Get())
 		{
-			sys_err("Festival: erro ao atualizar progresso da missao");
+			DBManager::instance().DirectQuery("ROLLBACK");
+
+			sys_err("Festival: erro ao atualizar progresso da missao de metin");
 			return;
 		}
-		
+
+		SQLResult* updateResult = updateMsg->Get();
+
+		// Se atualizou o progresso, a missão ainda não foi concluída.
+		if (updateResult->uiAffectedRows == 1)
+		{
+			auto commitMsg = DBManager::instance().DirectQuery("COMMIT");
+
+			if (!commitMsg || commitMsg->uiSQLErrno != 0 || !commitMsg->Get())
+			{
+				sys_err("Festival: erro ao confirmar progresso da missao de metin");
+				return;
+			}
+
+			return;
+		}
+
+		// Se não houve atualização de progresso, tenta concluir a missão.
 		auto completeMsg = DBManager::instance().DirectQuery(
 			"UPDATE srv1_player.festival_guild_mission AS mission "
-
 			"INNER JOIN srv1_player.festival_event AS event "
 			"ON event.id = mission.event_id "
-
 			"INNER JOIN srv1_player.festival_mission_template AS template "
 			"ON template.id = mission.template_id "
-
-			"INNER JOIN srv1_player.festival_guild_state AS guild_state "
-			"ON guild_state.event_id = mission.event_id "
-			"AND guild_state.guild_id = mission.guild_id "
-
 			"SET "
 			"mission.progress = mission.target_count, "
 			"mission.status = 'COMPLETED', "
 			"mission.completed_at = NOW(), "
-			"mission.points_awarded = 1, "
-
-			"guild_state.total_points = "
-			"guild_state.total_points + mission.points, "
-
-			"guild_state.completed_missions = "
-			"guild_state.completed_missions + 1 "
-
-			"WHERE mission.event_id = %u "
+			"mission.points_awarded = 1 "
+			"WHERE mission.id = %u "
+			"AND mission.event_id = %u "
 			"AND mission.cycle_id = event.current_cycle "
 			"AND event.status = 'ACTIVE' "
 			"AND mission.guild_id = %u "
@@ -1466,34 +1643,56 @@ namespace Festival
 			"AND (template.target_vnum = 0 "
 			"OR template.target_vnum = %u) "
 			"AND mission.expires_at > NOW()",
-
+			missionID,
 			FESTIVAL_EVENT_ID,
 			guildID,
 			playerID,
 			metinVnum
 		);
 
-		if (!completeMsg || completeMsg->uiSQLErrno != 0)
+		if (!completeMsg || completeMsg->uiSQLErrno != 0 || !completeMsg->Get())
 		{
-			sys_err("Festival: erro ao concluir missao e contabilizar pontos");
+			DBManager::instance().DirectQuery("ROLLBACK");
+
+			sys_err("Festival: erro ao concluir missao de metin");
 			return;
 		}
 
-		if (completeMsg->Get())
-		{
-			SQLResult* result = completeMsg->Get();
+		SQLResult* completeResult = completeMsg->Get();
 
-			if (result->uiAffectedRows > 0)
-			{
-				sys_log(
-					0,
-					"Festival: missao concluida. Guilda %u recebeu %u pontos",
-					guildID,
-					result->uiAffectedRows
-				);
-			}
+		if (completeResult->uiAffectedRows != 1)
+		{
+			DBManager::instance().DirectQuery("ROLLBACK");
+			return;
 		}
+
+		// Atualiza a pontuação e a progressão dos baús.
+		if (!AddGuildPoints(guildID, missionPoints))
+		{
+			DBManager::instance().DirectQuery("ROLLBACK");
+
+			sys_err("Festival: erro ao atribuir pontos da missao de metin");
+			return;
+		}
+
+		// Confirma a conclusão e a atribuição dos pontos.
+		auto commitMsg = DBManager::instance().DirectQuery("COMMIT");
+
+		if (!commitMsg || commitMsg->uiSQLErrno != 0 || !commitMsg->Get())
+		{
+			sys_err("Festival: erro ao confirmar conclusao da missao de metin");
+			return;
+		}
+
+		sys_log(
+			0,
+			"Festival: missao %u concluida. Guilda %u recebeu %u pontos",
+			missionID,
+			guildID,
+			missionPoints
+		);
 	}
+
 	
 	void OnMonsterKilled(LPCHARACTER ch, DWORD monsterVnum)
 	{
@@ -1511,6 +1710,62 @@ namespace Festival
 		const DWORD playerID = ch->GetPlayerID();
 		const DWORD guildID = guild->GetID();
 
+		auto transactionMsg = DBManager::instance().DirectQuery(
+			"START TRANSACTION"
+		);
+
+		if (!transactionMsg || transactionMsg->uiSQLErrno != 0)
+		{
+			sys_err("Festival: erro ao iniciar transacao da missao de monstros");
+			return;
+		}
+
+		auto missionMsg = DBManager::instance().DirectQuery(
+			"SELECT mission.id, mission.points "
+			"FROM srv1_player.festival_guild_mission AS mission "
+			"INNER JOIN srv1_player.festival_event AS event "
+			"ON event.id = mission.event_id "
+			"INNER JOIN srv1_player.festival_mission_template AS template "
+			"ON template.id = mission.template_id "
+			"WHERE mission.event_id = %u "
+			"AND mission.cycle_id = event.current_cycle "
+			"AND event.status = 'ACTIVE' "
+			"AND mission.guild_id = %u "
+			"AND mission.player_id = %u "
+			"AND mission.status = 'IN_PROGRESS' "
+			"AND template.type = 2 "
+			"AND (template.target_vnum = 0 "
+			"OR template.target_vnum = %u) "
+			"AND mission.expires_at > NOW() "
+			"LIMIT 1 FOR UPDATE",
+			FESTIVAL_EVENT_ID,
+			guildID,
+			playerID,
+			monsterVnum
+		);
+
+		if (!missionMsg || missionMsg->uiSQLErrno != 0 || !missionMsg->Get())
+		{
+			DBManager::instance().DirectQuery("ROLLBACK");
+			sys_err("Festival: erro ao consultar missao de monstros");
+			return;
+		}
+
+		MYSQL_ROW row = mysql_fetch_row(missionMsg->Get()->pSQLResult);
+
+		if (!row || !row[0] || !row[1])
+		{
+			DBManager::instance().DirectQuery("ROLLBACK");
+			return;
+		}
+
+		DWORD missionID = 0;
+		DWORD missionPoints = 0;
+
+		str_to_number(missionID, row[0]);
+		str_to_number(missionPoints, row[1]);
+
+		// Atualiza o progresso se ainda nao for a ultima eliminacao.
 		auto updateMsg = DBManager::instance().DirectQuery(
 			"UPDATE srv1_player.festival_guild_mission AS mission "
 			"INNER JOIN srv1_player.festival_event AS event "
@@ -1518,7 +1773,8 @@ namespace Festival
 			"INNER JOIN srv1_player.festival_mission_template AS template "
 			"ON template.id = mission.template_id "
 			"SET mission.progress = mission.progress + 1 "
-			"WHERE mission.event_id = %u "
+			"WHERE mission.id = %u "
+			"AND mission.event_id = %u "
 			"AND mission.cycle_id = event.current_cycle "
 			"AND event.status = 'ACTIVE' "
 			"AND mission.guild_id = %u "
@@ -1529,37 +1785,47 @@ namespace Festival
 			"AND (template.target_vnum = 0 "
 			"OR template.target_vnum = %u) "
 			"AND mission.expires_at > NOW()",
+			missionID,
 			FESTIVAL_EVENT_ID,
 			guildID,
 			playerID,
 			monsterVnum
 		);
 
-		if (!updateMsg || updateMsg->uiSQLErrno != 0)
+		if (!updateMsg || updateMsg->uiSQLErrno != 0 || !updateMsg->Get())
 		{
+			DBManager::instance().DirectQuery("ROLLBACK");
 			sys_err("Festival: erro ao atualizar progresso de monstros");
 			return;
 		}
 
+		if (updateMsg->Get()->uiAffectedRows == 1)
+		{
+			auto commitMsg = DBManager::instance().DirectQuery("COMMIT");
+
+			if (!commitMsg || commitMsg->uiSQLErrno != 0 || !commitMsg->Get())
+			{
+				sys_err("Festival: erro ao confirmar progresso da missao");
+				return;
+			}
+
+			return;
+		}
+
+		// A ultima eliminacao conclui a missao.
 		auto completeMsg = DBManager::instance().DirectQuery(
 			"UPDATE srv1_player.festival_guild_mission AS mission "
 			"INNER JOIN srv1_player.festival_event AS event "
 			"ON event.id = mission.event_id "
 			"INNER JOIN srv1_player.festival_mission_template AS template "
 			"ON template.id = mission.template_id "
-			"INNER JOIN srv1_player.festival_guild_state AS guild_state "
-			"ON guild_state.event_id = mission.event_id "
-			"AND guild_state.guild_id = mission.guild_id "
 			"SET "
 			"mission.progress = mission.target_count, "
 			"mission.status = 'COMPLETED', "
 			"mission.completed_at = NOW(), "
-			"mission.points_awarded = 1, "
-			"guild_state.total_points = "
-			"guild_state.total_points + mission.points, "
-			"guild_state.completed_missions = "
-			"guild_state.completed_missions + 1 "
-			"WHERE mission.event_id = %u "
+			"mission.points_awarded = 1 "
+			"WHERE mission.id = %u "
+			"AND mission.event_id = %u "
 			"AND mission.cycle_id = event.current_cycle "
 			"AND event.status = 'ACTIVE' "
 			"AND mission.guild_id = %u "
@@ -1571,83 +1837,103 @@ namespace Festival
 			"AND (template.target_vnum = 0 "
 			"OR template.target_vnum = %u) "
 			"AND mission.expires_at > NOW()",
+			missionID,
 			FESTIVAL_EVENT_ID,
 			guildID,
 			playerID,
 			monsterVnum
 		);
 
-		if (!completeMsg || completeMsg->uiSQLErrno != 0)
+		if (!completeMsg || completeMsg->uiSQLErrno != 0 || !completeMsg->Get())
 		{
+			DBManager::instance().DirectQuery("ROLLBACK");
 			sys_err("Festival: erro ao concluir missao de monstros");
 			return;
 		}
 
-		if (completeMsg->Get())
+		if (completeMsg->Get()->uiAffectedRows != 1)
 		{
-			SQLResult* result = completeMsg->Get();
-
-			if (result->uiAffectedRows > 0)
-			{
-				sys_log(
-					0,
-					"Festival: jogador %u concluiu missao de monstros. Guilda %u recebeu pontos",
-					playerID,
-					guildID
-				);
-			}
+			DBManager::instance().DirectQuery("ROLLBACK");
+			return;
 		}
+
+		if (!AddGuildPoints(guildID, missionPoints))
+		{
+			DBManager::instance().DirectQuery("ROLLBACK");
+			sys_err("Festival: erro ao atribuir pontos da missao de monstros");
+			return;
+		}
+
+		auto commitMsg = DBManager::instance().DirectQuery("COMMIT");
+
+		if (!commitMsg || commitMsg->uiSQLErrno != 0 || !commitMsg->Get())
+		{
+			sys_err("Festival: erro ao confirmar missao de monstros");
+			return;
+		}
+
+		sys_log(0,
+			"Festival: missao de monstros %u concluida. Guilda %u recebeu %u pontos",
+			missionID,
+			guildID,
+			missionPoints
+		);
 	}
-	
+
+
 	void OnPlayerKilled(LPCHARACTER killer, LPCHARACTER victim, bool isDuel)
 	{
-		// Validacoes iniciais
 		if (!killer || !victim)
 			return;
 
 		if (!killer->IsPC() || !victim->IsPC())
 			return;
 
-		// Nao contabilizar duelos de arena
 		if (isDuel)
 			return;
 
-		// Atacante precisa ter guilda
 		if (!killer->GetGuild())
 			return;
 
-		DWORD killerGuildID = killer->GetGuild()->GetID();
+		const DWORD killerGuildID = killer->GetGuild()->GetID();
+
 		DWORD victimGuildID = 0;
 
-		// A vitima pode nao possuir guilda
 		if (victim->GetGuild())
 			victimGuildID = victim->GetGuild()->GetID();
 
-		// Nao permite mortes dentro da mesma guilda
 		if (victimGuildID != 0 && killerGuildID == victimGuildID)
 			return;
 
-		// Nivel da vitima precisa ser igual ou superior
 		if (victim->GetLevel() < killer->GetLevel())
 			return;
 
-		// Validar VNUM/IDs
-		DWORD playerID = killer->GetPlayerID();
-		DWORD victimID = victim->GetPlayerID();
+		const DWORD playerID = killer->GetPlayerID();
+		const DWORD victimID = victim->GetPlayerID();
 
 		if (playerID == 0 || victimID == 0 || killerGuildID == 0)
 			return;
 
-		// Verificar evento ativo
-		if (!quest::CQuestManager::instance().GetEventFlag("festival_guild"))
+		if (quest::CQuestManager::instance().GetEventFlag("festival_guild") == 0)
 			return;
-		
+
+		auto transactionMsg = DBManager::instance().DirectQuery(
+			"START TRANSACTION"
+		);
+
+		if (!transactionMsg || transactionMsg->uiSQLErrno != 0)
+		{
+			sys_err("FESTIVAL PVP: erro ao iniciar transacao");
+			return;
+		}
+
+		// Localizar e bloquear a missao ativa do jogador.
 		auto missionMsg = DBManager::instance().DirectQuery(
-			"SELECT mission.id "
+			"SELECT mission.id, mission.points "
 			"FROM srv1_player.festival_guild_mission AS mission "
-			"JOIN srv1_player.festival_event AS event "
+			"INNER JOIN srv1_player.festival_event AS event "
 			"ON event.id = mission.event_id "
-			"JOIN srv1_player.festival_mission_template AS template "
+			"INNER JOIN srv1_player.festival_mission_template AS template "
 			"ON template.id = mission.template_id "
 			"WHERE event.id = %u "
 			"AND event.status = 'ACTIVE' "
@@ -1657,7 +1943,7 @@ namespace Festival
 			"AND mission.status = 'IN_PROGRESS' "
 			"AND template.type = 3 "
 			"AND mission.expires_at > NOW() "
-			"LIMIT 1",
+			"LIMIT 1 FOR UPDATE",
 			FESTIVAL_EVENT_ID,
 			killerGuildID,
 			playerID
@@ -1665,14 +1951,24 @@ namespace Festival
 
 		if (!missionMsg || missionMsg->uiSQLErrno != 0 || !missionMsg->Get())
 		{
-			sys_err("FESTIVAL PVP: Erro ao verificar missao ativa.");
+			DBManager::instance().DirectQuery("ROLLBACK");
+			sys_err("FESTIVAL PVP: erro ao consultar missao");
 			return;
 		}
 
 		MYSQL_ROW missionRow = mysql_fetch_row(missionMsg->Get()->pSQLResult);
 
-		if (!missionRow)
+		if (!missionRow || !missionRow[0] || !missionRow[1])
+		{
+			DBManager::instance().DirectQuery("ROLLBACK");
 			return;
+		}
+
+		DWORD missionID = 0;
+		DWORD missionPoints = 0;
+
+		str_to_number(missionID, missionRow[0]);
+		str_to_number(missionPoints, missionRow[1]);
 
 		int sameTargetInterval = GetFestivalConfig(
 			"pvp_same_target_interval",
@@ -1682,7 +1978,7 @@ namespace Festival
 		if (sameTargetInterval < 0)
 			sameTargetInterval = 0;
 
-		// Consultar quantidade de eliminacoes anteriores
+		// Consultar eliminacoes anteriores contra o mesmo jogador.
 		auto countMsg = DBManager::instance().DirectQuery(
 			"SELECT COUNT(*) "
 			"FROM srv1_player.festival_pvp_history "
@@ -1704,7 +2000,8 @@ namespace Festival
 
 		if (!countMsg || countMsg->uiSQLErrno != 0 || !countMsg->Get())
 		{
-			sys_err("FESTIVAL PVP: Erro ao consultar quantidade de eliminacoes.");
+			DBManager::instance().DirectQuery("ROLLBACK");
+			sys_err("FESTIVAL PVP: erro ao consultar quantidade de eliminacoes");
 			return;
 		}
 
@@ -1712,17 +2009,18 @@ namespace Festival
 
 		if (!countRow || !countRow[0])
 		{
-			sys_err("FESTIVAL PVP: Resultado da contagem invalido.");
+			DBManager::instance().DirectQuery("ROLLBACK");
+			sys_err("FESTIVAL PVP: resultado da contagem invalido");
 			return;
 		}
 
 		DWORD previousKills = 0;
 		str_to_number(previousKills, countRow[0]);
 
-		// Calcular intervalo progressivo
-		long long waitTime = (long long)sameTargetInterval * (previousKills + 1);
+		const long long waitTime =
+			(long long)sameTargetInterval * ((long long)previousKills + 1);
 
-		// Verificar intervalo
+		// Verificar o intervalo progressivo.
 		if (waitTime > 0)
 		{
 			auto checkMsg = DBManager::instance().DirectQuery(
@@ -1749,38 +2047,41 @@ namespace Festival
 
 			if (!checkMsg || checkMsg->uiSQLErrno != 0 || !checkMsg->Get())
 			{
-				sys_err("FESTIVAL PVP: Erro ao consultar intervalo.");
+				DBManager::instance().DirectQuery("ROLLBACK");
+				sys_err("FESTIVAL PVP: erro ao consultar intervalo");
 				return;
 			}
 
 			MYSQL_ROW row = mysql_fetch_row(checkMsg->Get()->pSQLResult);
 
 			if (row)
+			{
+				DBManager::instance().DirectQuery("ROLLBACK");
 				return;
+			}
 		}
 
-		// Registrar eliminacao no historico PvP
+		// Registrar eliminacao somente se a missao ainda estiver ativa.
 		auto historyMsg = DBManager::instance().DirectQuery(
 			"INSERT INTO srv1_player.festival_pvp_history "
 			"(event_id, cycle_id, killer_id, victim_id, guild_id) "
 			"SELECT event.id, event.current_cycle, %u, %u, %u "
 			"FROM srv1_player.festival_event AS event "
-			"JOIN srv1_player.festival_guild_mission AS mission "
+			"INNER JOIN srv1_player.festival_guild_mission AS mission "
 			"ON mission.event_id = event.id "
-			"JOIN srv1_player.festival_mission_template AS template "
-			"ON template.id = mission.template_id "
 			"WHERE event.id = %u "
 			"AND event.status = 'ACTIVE' "
+			"AND mission.id = %u "
 			"AND mission.cycle_id = event.current_cycle "
 			"AND mission.guild_id = %u "
 			"AND mission.player_id = %u "
 			"AND mission.status = 'IN_PROGRESS' "
-			"AND template.type = 3 "
 			"AND mission.expires_at > NOW()",
 			playerID,
 			victimID,
 			killerGuildID,
 			FESTIVAL_EVENT_ID,
+			missionID,
 			killerGuildID,
 			playerID
 		);
@@ -1789,57 +2090,71 @@ namespace Festival
 			!historyMsg->Get() ||
 			historyMsg->Get()->uiAffectedRows != 1)
 		{
-			sys_err("FESTIVAL PVP: Erro ao registrar eliminacao ou missao inexistente.");
+			DBManager::instance().DirectQuery("ROLLBACK");
+			sys_err("FESTIVAL PVP: erro ao registrar eliminacao");
 			return;
 		}
 
-		// Incrementar progresso quando ainda nao for a ultima eliminacao
+		// Incrementar progresso se ainda nao for a ultima eliminacao.
 		auto updateMsg = DBManager::instance().DirectQuery(
 			"UPDATE srv1_player.festival_guild_mission AS mission "
-			"JOIN srv1_player.festival_event AS event "
+			"INNER JOIN srv1_player.festival_event AS event "
 			"ON event.id = mission.event_id "
-			"JOIN srv1_player.festival_mission_template AS template "
+			"INNER JOIN srv1_player.festival_mission_template AS template "
 			"ON template.id = mission.template_id "
 			"SET mission.progress = mission.progress + 1 "
-			"WHERE event.id = %u "
-			"AND event.status = 'ACTIVE' "
+			"WHERE mission.id = %u "
+			"AND mission.event_id = %u "
 			"AND mission.cycle_id = event.current_cycle "
+			"AND event.status = 'ACTIVE' "
 			"AND mission.guild_id = %u "
 			"AND mission.player_id = %u "
 			"AND mission.status = 'IN_PROGRESS' "
-			"AND template.type = 3 "
 			"AND mission.progress + 1 < mission.target_count "
+			"AND template.type = 3 "
 			"AND mission.expires_at > NOW()",
+			missionID,
 			FESTIVAL_EVENT_ID,
 			killerGuildID,
 			playerID
 		);
 
-		if (!updateMsg || updateMsg->uiSQLErrno != 0)
+		if (!updateMsg || updateMsg->uiSQLErrno != 0 || !updateMsg->Get())
 		{
-			sys_err("FESTIVAL PVP: Erro ao atualizar progresso.");
+			DBManager::instance().DirectQuery("ROLLBACK");
+			sys_err("FESTIVAL PVP: erro ao atualizar progresso");
 			return;
 		}
 
-		// Concluir missao e atribuir pontos
+		if (updateMsg->Get()->uiAffectedRows == 1)
+		{
+			auto commitMsg = DBManager::instance().DirectQuery("COMMIT");
+
+			if (!commitMsg || commitMsg->uiSQLErrno != 0 || !commitMsg->Get())
+			{
+				sys_err("Festival: erro ao confirmar progresso da missao");
+				return;
+			}
+
+			return;
+		}
+
+		// Concluir a missao.
 		auto completeMsg = DBManager::instance().DirectQuery(
 			"UPDATE srv1_player.festival_guild_mission AS mission "
-			"JOIN srv1_player.festival_event AS event "
+			"INNER JOIN srv1_player.festival_event AS event "
 			"ON event.id = mission.event_id "
-			"JOIN srv1_player.festival_mission_template AS template "
+			"INNER JOIN srv1_player.festival_mission_template AS template "
 			"ON template.id = mission.template_id "
-			"JOIN srv1_player.festival_guild_state AS guild "
-			"ON guild.event_id = mission.event_id "
-			"AND guild.guild_id = mission.guild_id "
-			"SET mission.progress = mission.target_count, "
+			"SET "
+			"mission.progress = mission.target_count, "
 			"mission.status = 'COMPLETED', "
 			"mission.completed_at = NOW(), "
-			"mission.points_awarded = 1, "
-			"guild.total_points = guild.total_points + mission.points, "
-			"guild.completed_missions = guild.completed_missions + 1 "
-			"WHERE event.id = %u "
-			"AND event.status = 'ACTIVE' "
+			"mission.points_awarded = 1 "
+			"WHERE mission.id = %u "
+			"AND mission.event_id = %u "
 			"AND mission.cycle_id = event.current_cycle "
+			"AND event.status = 'ACTIVE' "
 			"AND mission.guild_id = %u "
 			"AND mission.player_id = %u "
 			"AND mission.status = 'IN_PROGRESS' "
@@ -1847,28 +2162,51 @@ namespace Festival
 			"AND mission.progress + 1 >= mission.target_count "
 			"AND template.type = 3 "
 			"AND mission.expires_at > NOW()",
+			missionID,
 			FESTIVAL_EVENT_ID,
 			killerGuildID,
 			playerID
 		);
 
-		if (!completeMsg || completeMsg->uiSQLErrno != 0)
+		if (!completeMsg || completeMsg->uiSQLErrno != 0 || !completeMsg->Get())
 		{
-			sys_err("FESTIVAL PVP: Erro ao concluir missao.");
+			DBManager::instance().DirectQuery("ROLLBACK");
+			sys_err("FESTIVAL PVP: erro ao concluir missao");
 			return;
 		}
 
-		if (completeMsg->Get()->uiAffectedRows > 0)
+		if (completeMsg->Get()->uiAffectedRows != 1)
 		{
-			sys_log(0,
-				"FESTIVAL PVP: Player %u completou uma missao PvP. Guild %u.",
-				playerID,
-				killerGuildID
-			);
+			DBManager::instance().DirectQuery("ROLLBACK");
+			return;
 		}
+
+		if (!AddGuildPoints(killerGuildID, missionPoints))
+		{
+			DBManager::instance().DirectQuery("ROLLBACK");
+			sys_err("FESTIVAL PVP: erro ao atribuir pontos");
+			return;
+		}
+
+		auto commitMsg = DBManager::instance().DirectQuery("COMMIT");
+
+		if (!commitMsg || commitMsg->uiSQLErrno != 0 || !commitMsg->Get())
+		{
+			sys_err("FESTIVAL PVP: erro ao confirmar missao");
+			return;
+		}
+
+		sys_log(0,
+			"FESTIVAL PVP: missao %u concluida. Player %u, guilda %u recebeu %u pontos",
+			missionID,
+			playerID,
+			killerGuildID,
+			missionPoints
+		);
 	}
+
 	
-	
+
 	void OnItemCollected(LPCHARACTER ch, DWORD itemVnum, DWORD itemCount)
 	{
 		if (!ch || !ch->IsPC() || itemVnum == 0 || itemCount == 0)
@@ -1885,8 +2223,18 @@ namespace Festival
 		const DWORD playerID = ch->GetPlayerID();
 		const DWORD guildID = guild->GetID();
 
-		auto pmsg = DBManager::instance().DirectQuery(
-			"SELECT mission.id, mission.progress, mission.target_count "
+		auto transactionMsg = DBManager::instance().DirectQuery(
+			"START TRANSACTION"
+		);
+
+		if (!transactionMsg || transactionMsg->uiSQLErrno != 0)
+		{
+			sys_err("Festival: erro ao iniciar transacao da missao de coleta");
+			return;
+		}
+
+		auto missionMsg = DBManager::instance().DirectQuery(
+			"SELECT mission.id, mission.points "
 			"FROM srv1_player.festival_guild_mission AS mission "
 			"INNER JOIN srv1_player.festival_event AS event "
 			"ON event.id = mission.event_id "
@@ -1902,33 +2250,43 @@ namespace Festival
 			"AND (template.target_vnum = 0 "
 			"OR template.target_vnum = %u) "
 			"AND mission.expires_at > NOW() "
-			"LIMIT 1",
+			"LIMIT 1 FOR UPDATE",
 			FESTIVAL_EVENT_ID,
 			guildID,
 			playerID,
 			itemVnum
 		);
 
-		SQLResult* pResult = GetSelectResult(pmsg, "consultar missao de coleta");
-
-		if (!pResult)
+		if (!missionMsg || missionMsg->uiSQLErrno != 0 || !missionMsg->Get())
+		{
+			DBManager::instance().DirectQuery("ROLLBACK");
+			sys_err("Festival: erro ao consultar missao de coleta");
 			return;
+		}
 
-		MYSQL_ROW row = mysql_fetch_row(pResult->pSQLResult);
+		MYSQL_ROW row = mysql_fetch_row(missionMsg->Get()->pSQLResult);
 
-		if (!row || !row[0])
+		if (!row || !row[0] || !row[1])
+		{
+			DBManager::instance().DirectQuery("ROLLBACK");
 			return;
+		}
 
-		sys_log(
-			0,
-			"Festival: jogador %u coletou item %u quantidade %u. Missao encontrada: %s",
+		DWORD missionID = 0;
+		DWORD missionPoints = 0;
+
+		str_to_number(missionID, row[0]);
+		str_to_number(missionPoints, row[1]);
+
+		sys_log(0,
+			"Festival: jogador %u coletou item %u quantidade %u. Missao %u",
 			playerID,
 			itemVnum,
 			itemCount,
-			row[0]
+			missionID
 		);
 
-		// Atualiza o progresso quando a missao ainda nao sera concluida.
+		// Atualizar progresso quando a quantidade nao concluir a missao.
 		auto updateMsg = DBManager::instance().DirectQuery(
 			"UPDATE srv1_player.festival_guild_mission AS mission "
 			"INNER JOIN srv1_player.festival_event AS event "
@@ -1936,7 +2294,8 @@ namespace Festival
 			"INNER JOIN srv1_player.festival_mission_template AS template "
 			"ON template.id = mission.template_id "
 			"SET mission.progress = mission.progress + %u "
-			"WHERE mission.event_id = %u "
+			"WHERE mission.id = %u "
+			"AND mission.event_id = %u "
 			"AND mission.cycle_id = event.current_cycle "
 			"AND event.status = 'ACTIVE' "
 			"AND mission.guild_id = %u "
@@ -1948,6 +2307,7 @@ namespace Festival
 			"OR template.target_vnum = %u) "
 			"AND mission.expires_at > NOW()",
 			itemCount,
+			missionID,
 			FESTIVAL_EVENT_ID,
 			guildID,
 			playerID,
@@ -1955,39 +2315,40 @@ namespace Festival
 			itemVnum
 		);
 
-		if (!updateMsg || updateMsg->uiSQLErrno != 0)
+		if (!updateMsg || updateMsg->uiSQLErrno != 0 || !updateMsg->Get())
 		{
+			DBManager::instance().DirectQuery("ROLLBACK");
 			sys_err("Festival: erro ao atualizar progresso da missao de coleta");
 			return;
 		}
 
-		// Conclui a missao e contabiliza os pontos.
+		if (updateMsg->Get()->uiAffectedRows == 1)
+		{
+			auto commitMsg = DBManager::instance().DirectQuery("COMMIT");
+
+			if (!commitMsg || commitMsg->uiSQLErrno != 0 || !commitMsg->Get())
+			{
+				sys_err("Festival: erro ao confirmar progresso da missao");
+				return;
+			}
+
+			return;
+		}
+
+		// A quantidade coletada atingiu ou ultrapassou o objetivo.
 		auto completeMsg = DBManager::instance().DirectQuery(
 			"UPDATE srv1_player.festival_guild_mission AS mission "
-
 			"INNER JOIN srv1_player.festival_event AS event "
 			"ON event.id = mission.event_id "
-
 			"INNER JOIN srv1_player.festival_mission_template AS template "
 			"ON template.id = mission.template_id "
-
-			"INNER JOIN srv1_player.festival_guild_state AS guild_state "
-			"ON guild_state.event_id = mission.event_id "
-			"AND guild_state.guild_id = mission.guild_id "
-
 			"SET "
 			"mission.progress = mission.target_count, "
 			"mission.status = 'COMPLETED', "
 			"mission.completed_at = NOW(), "
-			"mission.points_awarded = 1, "
-
-			"guild_state.total_points = "
-			"guild_state.total_points + mission.points, "
-
-			"guild_state.completed_missions = "
-			"guild_state.completed_missions + 1 "
-
-			"WHERE mission.event_id = %u "
+			"mission.points_awarded = 1 "
+			"WHERE mission.id = %u "
+			"AND mission.event_id = %u "
 			"AND mission.cycle_id = event.current_cycle "
 			"AND event.status = 'ACTIVE' "
 			"AND mission.guild_id = %u "
@@ -1999,7 +2360,7 @@ namespace Festival
 			"AND (template.target_vnum = 0 "
 			"OR template.target_vnum = %u) "
 			"AND mission.expires_at > NOW()",
-
+			missionID,
 			FESTIVAL_EVENT_ID,
 			guildID,
 			playerID,
@@ -2007,26 +2368,40 @@ namespace Festival
 			itemVnum
 		);
 
-		if (!completeMsg || completeMsg->uiSQLErrno != 0)
+		if (!completeMsg || completeMsg->uiSQLErrno != 0 || !completeMsg->Get())
 		{
+			DBManager::instance().DirectQuery("ROLLBACK");
 			sys_err("Festival: erro ao concluir missao de coleta");
 			return;
 		}
 
-		if (completeMsg->Get())
+		if (completeMsg->Get()->uiAffectedRows != 1)
 		{
-			SQLResult* result = completeMsg->Get();
-
-			if (result->uiAffectedRows > 0)
-			{
-				sys_log(
-					0,
-					"Festival: missao de coleta concluida. Guilda %u recebeu %u pontos",
-					guildID,
-					result->uiAffectedRows
-				);
-			}
+			DBManager::instance().DirectQuery("ROLLBACK");
+			return;
 		}
+
+		if (!AddGuildPoints(guildID, missionPoints))
+		{
+			DBManager::instance().DirectQuery("ROLLBACK");
+			sys_err("Festival: erro ao atribuir pontos da missao de coleta");
+			return;
+		}
+
+		auto commitMsg = DBManager::instance().DirectQuery("COMMIT");
+
+		if (!commitMsg || commitMsg->uiSQLErrno != 0 || !commitMsg->Get())
+		{
+			sys_err("Festival: erro ao confirmar missao de coleta");
+			return;
+		}
+
+		sys_log(0,
+			"Festival: missao de coleta %u concluida. Guilda %u recebeu %u pontos",
+			missionID,
+			guildID,
+			missionPoints
+		);
 	}
 
 	int GetFestivalConfig(const char* configKey, int defaultValue)
@@ -2051,4 +2426,44 @@ namespace Festival
 
 		return value;
 	}
+	
+	bool AddGuildPoints(DWORD guildID, DWORD points)
+	{
+		if (guildID == 0 || points == 0)
+			return false;
+
+		auto pmsg = DBManager::instance().DirectQuery(
+			"UPDATE srv1_player.festival_guild_state "
+			"SET "
+			"pending_points = pending_points + "
+				"GREATEST(0, CAST(reward_progress AS SIGNED) + %u - 2000), "
+			"reward_progress = LEAST(2000, reward_progress + %u), "
+			"total_points = total_points + %u, "
+			"completed_missions = completed_missions + 1 "
+			"WHERE event_id = %u "
+			"AND guild_id = %u",
+			points,
+			points,
+			points,
+			FESTIVAL_EVENT_ID,
+			guildID
+		);
+
+		if (!pmsg || pmsg->uiSQLErrno != 0 || !pmsg->Get())
+		{
+			sys_err("Festival: erro ao contabilizar pontos da guilda %u", guildID);
+			return false;
+		}
+
+		SQLResult* result = pmsg->Get();
+
+		if (result->uiAffectedRows != 1)
+		{
+			sys_err("Festival: estado da guilda %u nao encontrado ao contabilizar pontos", guildID);
+			return false;
+		}
+
+		return true;
+	}
+
 }
