@@ -916,6 +916,7 @@ int CInputMain::FestivGuild(LPCHARACTER ch, const char* data)
         {
             Festival::SendOpen(ch);
             Festival::SendMission(ch);
+			Festival::SendGuildState(ch);
         }
         break;
         case FEST_CG_ACCEPT_MISSION:

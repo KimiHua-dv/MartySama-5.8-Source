@@ -31,6 +31,7 @@ namespace Festival
 	bool InitializeGuildState(DWORD guildID);
 	int GetFestivalConfig(const char* configKey, int defaultValue);
 	bool AddGuildPoints(DWORD guildID, DWORD points);
+	void SendGuildState(LPCHARACTER ch);
 }
 
 enum EFestivalGuildHeader
@@ -43,7 +44,8 @@ enum EFestivalGuildSubHeader
 {
 	FEST_GUILD_OPEN = 0,
 	FEST_GC_MISSION_LIST,
-	FEST_CG_ACCEPT_MISSION
+	FEST_CG_ACCEPT_MISSION,
+	FEST_GC_GUILD_STATE
 };
 
 #pragma pack(push, 1)
@@ -104,6 +106,16 @@ typedef struct SFestivalMissionPacket
 	DWORD time_limit;
 	BYTE status;
 } TFestivalMissionPacket;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct SFestivalGuildStatePacket
+{
+    DWORD total_points;
+    DWORD reward_progress;
+    DWORD pending_points;
+    BYTE claimed_chests;
+} TPacketGCFestivalGuildState;
 #pragma pack(pop)
 
 #endif

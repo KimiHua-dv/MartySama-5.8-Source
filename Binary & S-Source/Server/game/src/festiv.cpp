@@ -1683,7 +1683,9 @@ namespace Festival
 			sys_err("Festival: erro ao confirmar conclusao da missao de metin");
 			return;
 		}
-
+		
+		SendGuildState(ch);
+		
 		sys_log(
 			0,
 			"Festival: missao %u concluida. Guilda %u recebeu %u pontos",
@@ -1871,7 +1873,9 @@ namespace Festival
 			sys_err("Festival: erro ao confirmar missao de monstros");
 			return;
 		}
-
+		
+		SendGuildState(ch);
+		
 		sys_log(0,
 			"Festival: missao de monstros %u concluida. Guilda %u recebeu %u pontos",
 			missionID,
@@ -2196,6 +2200,8 @@ namespace Festival
 			return;
 		}
 
+		SendGuildState(killer);
+		
 		sys_log(0,
 			"FESTIVAL PVP: missao %u concluida. Player %u, guilda %u recebeu %u pontos",
 			missionID,
@@ -2395,7 +2401,9 @@ namespace Festival
 			sys_err("Festival: erro ao confirmar missao de coleta");
 			return;
 		}
-
+		
+		SendGuildState(ch);
+		
 		sys_log(0,
 			"Festival: missao de coleta %u concluida. Guilda %u recebeu %u pontos",
 			missionID,
@@ -2464,6 +2472,65 @@ namespace Festival
 		}
 
 		return true;
+	}
+
+	void SendGuildState(LPCHARACTER ch)
+	{
+		if (!ch)
+			return;
+
+		LPDESC d = ch->GetDesc();
+		if (!d)
+			return;
+
+		if (!ch->GetGuild())
+			return;
+
+		DWORD guildID = ch->GetGuild()->GetID();
+
+		if (guildID == 0)
+			return;
+
+		auto pmsg = DBManager::instance().DirectQuery(
+			"SELECT total_points, reward_progress, pending_points, claimed_chests "
+			"FROM srv1_player.festival_guild_state "
+			"WHERE event_id = %u AND guild_id = %u",
+			FESTIVAL_EVENT_ID, guildID
+		);
+
+		if (!pmsg || pmsg->uiSQLErrno != 0 || !pmsg->Get())
+		{
+			sys_err("Festival: falha ao consultar estado da guilda %u", guildID);
+			return;
+		}
+
+		SQLResult* result = pmsg->Get();
+		MYSQL_ROW row = mysql_fetch_row(result->pSQLResult);
+
+		if (!row)
+		{
+			sys_err("Festival: estado da guilda %u nao encontrado", guildID);
+			return;
+		}
+
+		TPacketGCFestivalGuildState payload = {};
+
+		str_to_number(payload.total_points, row[0]);
+		str_to_number(payload.reward_progress, row[1]);
+		str_to_number(payload.pending_points, row[2]);
+		str_to_number(payload.claimed_chests, row[3]);
+
+		TPacketGCFestival header = {};
+		header.header = HEADER_GC_FESTIVAL;
+		header.size = sizeof(TPacketGCFestival) + sizeof(TPacketGCFestivalGuildState);
+		header.subheader = FEST_GC_GUILD_STATE;
+
+		std::vector<char> buffer(header.size);
+
+		memcpy(buffer.data(), &header, sizeof(header));
+		memcpy(buffer.data() + sizeof(header), &payload, sizeof(payload));
+
+		d->Packet(buffer.data(), buffer.size());
 	}
 
 }
