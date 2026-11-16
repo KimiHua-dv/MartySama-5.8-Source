@@ -4950,7 +4950,7 @@ bool CPythonNetworkStream::RecvFestivalPacket()
 				m_apoPhaseWnd[PHASE_WINDOW_GAME],
 				"AppendFestivalMission",
 				Py_BuildValue(
-					"(issiiiii)",
+					"(issiiiiii)",
 					static_cast<int>(mission->id),
 					mission->title,
 					mission->description,
@@ -4958,12 +4958,47 @@ bool CPythonNetworkStream::RecvFestivalPacket()
 					static_cast<int>(mission->type),
 					static_cast<int>(mission->target_vnum),
 					static_cast<int>(mission->target_count),
-					static_cast<int>(mission->time_limit)
+					static_cast<int>(mission->time_limit),
+					static_cast<int>(mission->status)
 				)
 			);
 
 			readPoint += sizeof(TFestivalMissionPacket);
 		}
+	}
+	break;
+
+	case FEST_GC_GUILD_STATE:
+	{
+		if (vecBuffer.size() != sizeof(TPacketGCFestivalGuildState))
+		{
+			TraceError(
+				"FESTIVAL: tamanho invalido para estado da guilda: %u",
+				static_cast<unsigned int>(vecBuffer.size())
+			);
+
+			return false;
+		}
+
+		TPacketGCFestivalGuildState guildState;
+
+		memcpy(
+			&guildState,
+			vecBuffer.data(),
+			sizeof(TPacketGCFestivalGuildState)
+		);
+
+		PyCallClassMemberFunc(
+			m_apoPhaseWnd[PHASE_WINDOW_GAME],
+			"UpdateFestivalGuildState",
+			Py_BuildValue(
+				"(IIII)",
+				static_cast<unsigned int>(guildState.total_points),
+				static_cast<unsigned int>(guildState.reward_progress),
+				static_cast<unsigned int>(guildState.pending_points),
+				static_cast<unsigned int>(guildState.claimed_chests)
+			)
+		);
 	}
 	break;
 

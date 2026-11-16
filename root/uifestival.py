@@ -269,7 +269,17 @@ class Festival(ui.ScriptWindow):
 		self.UpdateRewardGauge()
 		self.SetMilestone()
 
-	
+	def UpdateGuildState(self, total_points, reward_progress, pending_points, claimed_chests):
+		self.TotalPoints = int(total_points)
+		self.RewardProgress = int(reward_progress)
+		self.PendingPoints = int(pending_points)
+		self.ClaimedChests = int(claimed_chests)
+
+		self.RefreshGuildInfos()
+		self.RefreshGuildProgress()
+		self.UpdateRewardGauge()
+		self.UpdateMileStone()
+		
 	def AddTestPoints(self, amount):
 		self.TotalPoints += amount
 		self.TotalPoints = min(self.TotalPoints, self.maxFestivalPoints)
@@ -279,19 +289,18 @@ class Festival(ui.ScriptWindow):
 		self.RefreshGuildInfos()
 	
 	def UpdateRewardGauge(self):
-		self.RewardGauge.SetPercentage(self.TotalPoints,self.maxFestivalPoints)
+		 self.RewardGauge.SetPercentage(self.RewardProgress,self.maxFestivalPoints)
 		
 	def UpdateMileStone(self):
-		chat.AppendChat(3, "Chamado")
-		if self.TotalPoints >= 200:
+		if self.RewardProgress >= 200:
 			self.rec_1.LoadImage("festival/rec_1_1.tga")
-		if self.TotalPoints >= 500:
+		if self.RewardProgress >= 500:
 			self.rec_2.LoadImage("festival/rec_2_1.tga")
-		if self.TotalPoints >= 1000:
+		if self.RewardProgress >= 1000:
 			self.rec_3.LoadImage("festival/rec_3_1.tga")
-		if self.TotalPoints >= 1500:
+		if self.RewardProgress >= 1500:
 			self.rec_4.LoadImage("festival/rec_4_1.tga")
-		if self.TotalPoints >= 2000:
+		if self.RewardProgress >= 2000:
 			self.rec_5.LoadImage("festival/rec_5_1.tga")
 			
 	def SetMilestone(self):
