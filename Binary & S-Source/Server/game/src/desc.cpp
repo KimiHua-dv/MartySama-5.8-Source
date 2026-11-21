@@ -108,6 +108,11 @@ void DESC::Initialize()
 #ifdef ENABLE_SEQUENCE_SYSTEM
 	m_seq_vector.clear();
 #endif
+
+	m_bClientProfile = CLIENT_PROFILE_MARTYSAMA;
+	m_bClientProfileIdentified = false;
+	m_bClientProfileLocked = false;
+
 }
 
 void DESC::Destroy()
@@ -958,7 +963,49 @@ void DESC::SetNextSequence()
 void DESC::SendLoginSuccessPacket()
 {
 	TAccountTable & rTable = GetAccountTable();
+	
+	if (GetClientProfile() == CLIENT_PROFILE_OWSAP)
+    {
+        TPacketGCLoginSuccessOwsap p{};
 
+        p.bHeader = HEADER_GC_LOGIN_SUCCESS_NEWSLOT;
+        p.handle = GetHandle();
+        p.random_key =
+            DESC_MANAGER::instance().MakeRandomKey(GetHandle());
+
+        for (int i = 0; i < PLAYER_PER_ACCOUNT; ++i)
+        {
+            ConvertToOwsapSimplePlayerInformation(
+                p.players[i],
+                rTable.players[i]
+            );
+
+#ifdef ENABLE_NEWSTUFF
+            if (!g_stProxyIP.empty())
+                p.players[i].lAddr = inet_addr(g_stProxyIP.c_str());
+#endif
+
+            CGuild* g =
+                CGuildManager::instance().GetLinkedGuild(
+                    rTable.players[i].dwID
+                );
+
+            if (g)
+            {
+                p.guild_id[i] = g->GetID();
+
+                strlcpy(
+                    p.guild_name[i],
+                    g->GetName(),
+                    sizeof(p.guild_name[i])
+                );
+            }
+        }
+
+        Packet(&p, sizeof(p));
+        return;
+    }
+	
 	TPacketGCLoginSuccess p;
 
 	p.bHeader    = HEADER_GC_LOGIN_SUCCESS_NEWSLOT;
@@ -986,7 +1033,14 @@ void DESC::SendLoginSuccessPacket()
 			p.guild_name[i][0] = '\0';
 		}
 	}
-
+	
+	sys_err("DEBUG SIZE SERVER:");
+	sys_err("PLAYER_PER_ACCOUNT=%d", PLAYER_PER_ACCOUNT);
+	sys_err("CHARACTER_NAME_MAX_LEN=%d", CHARACTER_NAME_MAX_LEN);
+	sys_err("GUILD_NAME_MAX_LEN=%d", GUILD_NAME_MAX_LEN);
+	sys_err("TSimplePlayer=%d", sizeof(TSimplePlayer));
+	sys_err("TPacketGCLoginSuccess=%d", sizeof(TPacketGCLoginSuccess));
+	
 	Packet(&p, sizeof(TPacketGCLoginSuccess));
 }
 

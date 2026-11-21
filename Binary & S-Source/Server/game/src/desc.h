@@ -17,6 +17,12 @@
 
 #define HANDSHAKE_RETRY_LIMIT		32
 
+enum EClientProtocolProfile
+{
+	CLIENT_PROFILE_MARTYSAMA = 0,
+	CLIENT_PROFILE_OWSAP = 1
+};
+
 class CInputProcessor;
 
 enum EDescType
@@ -215,6 +221,31 @@ class DESC
 		bool			isChannelStatusRequested() const { return m_bChannelStatusRequested; }
 		void			SetChannelStatusRequested(bool bChannelStatusRequested) { m_bChannelStatusRequested = bChannelStatusRequested; }
 
+		BYTE GetClientProfile() const
+		{
+			return m_bClientProfile;
+		}
+
+		bool SetClientProfile(BYTE bProfile)
+		{
+			if (m_bClientProfileLocked || m_bClientProfileIdentified)
+				return false;
+
+			if (bProfile != CLIENT_PROFILE_MARTYSAMA &&
+				bProfile != CLIENT_PROFILE_OWSAP)
+				return false;
+
+			m_bClientProfile = bProfile;
+			m_bClientProfileIdentified = true;
+
+			return true;
+		}
+
+		void LockClientProfile()
+		{
+			m_bClientProfileLocked = true;
+		}
+
 	protected:
 		void			Initialize();
 
@@ -291,6 +322,10 @@ class DESC
 
 		bool			m_bDestroyed;
 		bool			m_bChannelStatusRequested;
+		
+		BYTE m_bClientProfile;
+		bool m_bClientProfileIdentified;
+		bool m_bClientProfileLocked;
 
 #ifdef _IMPROVED_PACKET_ENCRYPTION_
 		Cipher cipher_;

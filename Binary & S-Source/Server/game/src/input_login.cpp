@@ -113,6 +113,8 @@ static bool FN_is_battle_zone(LPCHARACTER ch)
 
 void CInputLogin::Login(LPDESC d, const char * data)
 {
+	d->LockClientProfile();
+	
 	TPacketCGLogin * pinfo = (TPacketCGLogin *) data;
 
 	char login[LOGIN_MAX_LEN + 1];
@@ -165,6 +167,8 @@ void CInputLogin::Login(LPDESC d, const char * data)
 
 void CInputLogin::LoginByKey(LPDESC d, const char * data)
 {
+	d->LockClientProfile();
+	
 	TPacketCGLogin2 * pinfo = (TPacketCGLogin2 *) data;
 
 	char login[LOGIN_MAX_LEN + 1];
@@ -1078,6 +1082,40 @@ int CInputLogin::Analyze(LPDESC d, BYTE bHeader, const char * c_pData)
 
 	switch (bHeader)
 	{
+		case HEADER_CG_CLIENT_PROFILE:
+			{
+					
+				const TPacketCGClientProfile* p =
+					reinterpret_cast<const TPacketCGClientProfile*>(c_pData);
+				
+				sys_log(0, "CLIENT PROFILE RECEIVED: Header=%u Profile=%u Size=%u",
+					p->header,
+					p->bProfile,
+					sizeof(TPacketCGClientProfile));
+					
+				if (!d->IsPhase(PHASE_LOGIN) ||
+					!d->SetClientProfile(p->bProfile))
+				{
+					sys_err(
+						"Invalid client profile packet. IP: %s Profile: %u",
+						d->GetHostName(),
+						p->bProfile
+					);
+
+					d->SetPhase(PHASE_CLOSE);
+					return -1;
+				}
+
+				sys_log(
+					0,
+					"CLIENT PROFILE: %s - Profile: %u",
+					d->GetHostName(),
+					p->bProfile
+				);
+
+				break;
+			}
+			
 		case HEADER_CG_PONG:
 			Pong(d);
 			break;

@@ -150,7 +150,13 @@ void CInputDB::LoginSuccess(DWORD dwHandle, const char *data)
 	}
 
 	bool bFound = GetServerLocation(*pTab, pTab->bEmpire);
-
+	
+	sys_log(0, "DEBUG EMPIRE LOGIN: account=%s bFound=%d accountEmpire=%d descEmpire=%d",
+		pTab->login,
+		bFound,
+		pTab->bEmpire,
+		d->GetEmpire());
+	
 	d->BindAccountTable(pTab);
 
 	if (!bFound)
@@ -226,16 +232,56 @@ void CInputDB::PlayerCreateSuccess(LPDESC d, const char * data)
 	TAccountTable & r_Tab = d->GetAccountTable();
 	r_Tab.players[pPacketDB->bAccountCharacterIndex] = pPacketDB->player;
 
-	TPacketGCPlayerCreateSuccess pack;
+	// ============================================================
+	// PLAYER CREATE SUCCESS
+	// Seleciona o layout conforme o perfil da conexao.
+	// ============================================================
 
-	pack.header = HEADER_GC_CHARACTER_CREATE_SUCCESS;
-	pack.bAccountCharacterIndex = pPacketDB->bAccountCharacterIndex;
-	pack.player = pPacketDB->player;
-#ifdef ENABLE_NEWSTUFF
-	if (!g_stProxyIP.empty())
-		pack.player.lAddr=inet_addr(g_stProxyIP.c_str());
-#endif
-	d->Packet(&pack, sizeof(TPacketGCPlayerCreateSuccess));
+	if (d->GetClientProfile() == CLIENT_PROFILE_OWSAP)
+	{
+		TPacketGCPlayerCreateSuccessOwsap pack{};
+
+		pack.header = HEADER_GC_CHARACTER_CREATE_SUCCESS;
+
+		pack.bAccountCharacterIndex =
+			pPacketDB->bAccountCharacterIndex;
+
+		ConvertToOwsapSimplePlayerInformation(
+			pack.player,
+			pPacketDB->player
+		);
+
+	#ifdef ENABLE_NEWSTUFF
+		if (!g_stProxyIP.empty())
+		{
+			pack.player.lAddr =
+				static_cast<int32_t>(inet_addr(g_stProxyIP.c_str()));
+		}
+	#endif
+
+		d->Packet(&pack, sizeof(pack));
+	}
+	else
+	{
+		// Mantem o pacote original da MartySama.
+		TPacketGCPlayerCreateSuccess pack{};
+
+		pack.header = HEADER_GC_CHARACTER_CREATE_SUCCESS;
+
+		pack.bAccountCharacterIndex =
+			pPacketDB->bAccountCharacterIndex;
+
+		pack.player = pPacketDB->player;
+
+	#ifdef ENABLE_NEWSTUFF
+		if (!g_stProxyIP.empty())
+		{
+			pack.player.lAddr = inet_addr(g_stProxyIP.c_str());
+		}
+	#endif
+
+		d->Packet(&pack, sizeof(pack));
+	}
 
 	TPlayerItem t;
 	memset(&t, 0, sizeof(t));
@@ -280,7 +326,7 @@ void CInputDB::PlayerCreateSuccess(LPDESC d, const char * data)
 		}
 	}
 
-	LogManager::instance().CharLog(pack.player.dwID, 0, 0, 0, "CREATE PLAYER", "", d->GetHostName());
+	LogManager::instance().CharLog(pPacketDB->player.dwID,0,0,0,"CREATE PLAYER","",d->GetHostName());
 }
 
 void CInputDB::PlayerDeleteSuccess(LPDESC d, const char * data)

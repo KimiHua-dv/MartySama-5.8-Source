@@ -1,6 +1,8 @@
 #ifndef __INC_PACKET_H__
 #define __INC_PACKET_H__
 #include "stdafx.h"
+#include <stdint.h>
+#include <string.h>
 
 enum
 {
@@ -106,7 +108,8 @@ enum
 	HEADER_CG_NEW_MOVEMENTS				= 212,
 #endif
 	HEADER_CG_CLIENT_VERSION2		= 0xf1,
-
+	HEADER_CG_CLIENT_PROFILE = 0xF2,
+	
 #ifdef ENABLE_SWITCHBOT_WORLDARD
 	HEADER_CG_SWITCHBOT					= 222,
 #endif
@@ -545,6 +548,12 @@ typedef struct command_login
 	char	passwd[PASSWD_MAX_LEN + 1];
 } TPacketCGLogin;
 
+typedef struct command_client_profile
+{
+	BYTE	header;
+	BYTE	bProfile;
+} TPacketCGClientProfile;
+
 typedef struct command_login2
 {
 	BYTE	header;
@@ -600,6 +609,166 @@ typedef struct command_player_create_success
 	TSimplePlayer	player;
 } TPacketGCPlayerCreateSuccess;
 
+// ============================================================
+// OW SAP CLIENT PROTOCOL
+// Estruturas exclusivas para transmissão ao cliente Owsap.
+// Não substituir nem modificar as estruturas originais.
+// ============================================================
+
+#pragma pack(push, 1)
+
+typedef struct SSimplePlayerInformationOwsap
+{
+    DWORD dwID;
+    char szName[CHARACTER_NAME_MAX_LEN + 1];
+
+    BYTE byJob;
+    BYTE byLevel;
+
+    DWORD dwPlayMinutes;
+
+    BYTE byST;
+    BYTE byHT;
+    BYTE byDX;
+    BYTE byIQ;
+
+    DWORD dwMainPart;
+    BYTE bChangeName;
+    DWORD dwHairPart;
+
+    DWORD dwAccePart;
+
+    BYTE bDummy[4];
+
+    // Tipos fixos de 32 bits.
+    // O cliente Windows espera 4 bytes em cada campo.
+    int32_t x;
+    int32_t y;
+    int32_t lAddr;
+
+    WORD wPort;
+    BYTE bySkillGroup;
+
+    DWORD dwLastPlay;
+
+    BYTE byConquerorLevel;
+
+    BYTE bySungmaStr;
+    BYTE bySungmaHp;
+    BYTE bySungmaMove;
+    BYTE bySungmaImmune;
+
+} TOwsapSimplePlayerInformation;
+
+
+// Login success Owsap
+typedef struct packet_login_success_owsap
+{
+    BYTE bHeader;
+
+    TOwsapSimplePlayerInformation players[PLAYER_PER_ACCOUNT];
+
+    DWORD guild_id[PLAYER_PER_ACCOUNT];
+
+    char guild_name[PLAYER_PER_ACCOUNT][GUILD_NAME_MAX_LEN + 1];
+
+    DWORD handle;
+    DWORD random_key;
+
+} TPacketGCLoginSuccessOwsap;
+
+
+// Character create success Owsap
+typedef struct packet_player_create_success_owsap
+{
+    BYTE header;
+    BYTE bAccountCharacterIndex;
+
+    TOwsapSimplePlayerInformation player;
+
+} TPacketGCPlayerCreateSuccessOwsap;
+
+#pragma pack(pop)
+
+// ============================================================
+// CONVERSOR MARTYSAMA -> OWSAP
+// ============================================================
+
+inline void ConvertToOwsapSimplePlayerInformation(
+    TOwsapSimplePlayerInformation& dst,
+    const TSimplePlayer& src)
+{
+    memset(&dst, 0, sizeof(dst));
+
+    dst.dwID = src.dwID;
+
+    memcpy(
+        dst.szName,
+        src.szName,
+        sizeof(dst.szName)
+    );
+
+    dst.byJob = src.byJob;
+    dst.byLevel = src.byLevel;
+
+    dst.dwPlayMinutes = src.dwPlayMinutes;
+
+    dst.byST = src.byST;
+    dst.byHT = src.byHT;
+    dst.byDX = src.byDX;
+    dst.byIQ = src.byIQ;
+
+    dst.dwMainPart = src.wMainPart;
+    dst.bChangeName = src.bChangeName;
+    dst.dwHairPart = src.wHairPart;
+
+#ifdef ENABLE_ACCE_COSTUME_SYSTEM
+    dst.dwAccePart = src.wAccePart;
+#else
+    dst.dwAccePart = 0;
+#endif
+
+    memcpy(
+        dst.bDummy,
+        src.bDummy,
+        sizeof(dst.bDummy)
+    );
+
+    dst.x = static_cast<int32_t>(src.x);
+    dst.y = static_cast<int32_t>(src.y);
+    dst.lAddr = static_cast<int32_t>(src.lAddr);
+
+    dst.wPort = src.wPort;
+    dst.bySkillGroup = src.skill_group;
+
+    // Campos sem equivalente confirmado na MartySama.
+    // Inicializados em zero para manter o layout Owsap.
+    dst.dwLastPlay = 0;
+
+    dst.byConquerorLevel = 0;
+
+    dst.bySungmaStr = 0;
+    dst.bySungmaHp = 0;
+    dst.bySungmaMove = 0;
+    dst.bySungmaImmune = 0;
+}
+
+// ============================================================
+// VALIDACAO DO LAYOUT DE REDE
+// ============================================================
+
+static_assert(sizeof(DWORD) == 4,
+    "DWORD precisa possuir 4 bytes.");
+
+static_assert(sizeof(int32_t) == 4,
+    "int32_t precisa possuir 4 bytes.");
+
+static_assert(sizeof(TOwsapSimplePlayerInformation) == 80,
+    "Layout Owsap incorreto: tamanho esperado de 80 bytes.");
+
+static_assert(sizeof(TPacketGCPlayerCreateSuccessOwsap) == 82,
+    "Pacote Owsap de criacao deve possuir 82 bytes.");
+	
 typedef struct command_attack
 {
 	BYTE	bHeader;

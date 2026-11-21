@@ -255,6 +255,8 @@ CPacketInfoCG::CPacketInfoCG()
 #ifdef ENABLE_SWITCHBOT_WORLDARD
 	Set(HEADER_CG_SWITCHBOT, sizeof(TPacketCGSwitchBotSend), "SwitchBotSend", true);
 #endif
+	
+	Set(HEADER_CG_CLIENT_PROFILE, sizeof(TPacketCGClientProfile),"ClientProfile", false);
 }
 
 
