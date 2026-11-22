@@ -374,6 +374,153 @@ namespace
 	}
 }
 
+
+bool FinalizeFestivalEvent()
+{
+    auto transactionMsg = DBManager::instance().DirectQuery(
+        "START TRANSACTION"
+    );
+
+    if (!transactionMsg || transactionMsg->uiSQLErrno != 0)
+    {
+        sys_err("Festival: erro ao iniciar transacao de encerramento");
+        return false;
+    }
+
+    // 1. Bloqueia o registro do evento.
+    auto eventMsg = DBManager::instance().DirectQuery(
+        "SELECT status, started_at "
+        "FROM srv1_player.festival_event "
+        "WHERE id = %u "
+        "LIMIT 1 FOR UPDATE",
+        Festival::FESTIVAL_EVENT_ID
+    );
+
+    SQLResult* eventResult = GetSelectResult(
+        eventMsg,
+        "consultar evento para encerramento"
+    );
+
+    if (!eventResult)
+    {
+        DBManager::instance().DirectQuery("ROLLBACK");
+        return false;
+    }
+
+    MYSQL_ROW eventRow = mysql_fetch_row(eventResult->pSQLResult);
+
+    if (!eventRow || !eventRow[0] || !eventRow[1])
+    {
+        DBManager::instance().DirectQuery("ROLLBACK");
+        sys_err("Festival: registro do evento invalido");
+        return false;
+    }
+
+    // 2. Falha as missoes ainda pendentes.
+    auto missionMsg = DBManager::instance().DirectQuery(
+        "UPDATE srv1_player.festival_guild_mission "
+        "SET status = 'FAILED' "
+        "WHERE event_id = %u "
+        "AND status IN ('AVAILABLE', 'IN_PROGRESS')",
+        Festival::FESTIVAL_EVENT_ID
+    );
+
+    if (!missionMsg ||
+        missionMsg->uiSQLErrno != 0 ||
+        !missionMsg->Get())
+    {
+        DBManager::instance().DirectQuery("ROLLBACK");
+        sys_err("Festival: erro ao finalizar missoes");
+        return false;
+    }
+
+    // 3. Define o horario definitivo de encerramento.
+    // Se ja estiver CLOSED, preserva o horario registrado.
+    auto timeMsg = DBManager::instance().DirectQuery(
+        "UPDATE srv1_player.festival_event "
+        "SET ends_at = IF(status = 'CLOSED', ends_at, NOW()), "
+        "cycle_ends_at = NOW() "
+        "WHERE id = %u",
+        Festival::FESTIVAL_EVENT_ID
+    );
+
+    if (!timeMsg || timeMsg->uiSQLErrno != 0 || !timeMsg->Get())
+    {
+        DBManager::instance().DirectQuery("ROLLBACK");
+        sys_err("Festival: erro ao registrar encerramento");
+        return false;
+    }
+
+    // 4. Arquiva todas as guildas, inclusive as que possuem zero pontos.
+    auto archiveMsg = DBManager::instance().DirectQuery(
+        "INSERT INTO srv1_player.festival_guild_history "
+        "(edition_key, started_at, ended_at, guild_id, total_points) "
+
+        "SELECT "
+        "event.started_at, "
+        "event.started_at, "
+        "event.ends_at, "
+        "guild.guild_id, "
+        "guild.total_points "
+
+        "FROM srv1_player.festival_event AS event "
+
+        "INNER JOIN srv1_player.festival_guild_state AS guild "
+        "ON guild.event_id = event.id "
+
+        "WHERE event.id = %u "
+
+        "ON DUPLICATE KEY UPDATE "
+        "ended_at = VALUES(ended_at), "
+        "total_points = VALUES(total_points)",
+        Festival::FESTIVAL_EVENT_ID
+    );
+
+    if (!archiveMsg ||
+        archiveMsg->uiSQLErrno != 0 ||
+        !archiveMsg->Get())
+    {
+        DBManager::instance().DirectQuery("ROLLBACK");
+        sys_err("Festival: erro ao arquivar pontuacao das guildas");
+        return false;
+    }
+
+    // 5. Fecha o evento.
+    auto closeMsg = DBManager::instance().DirectQuery(
+        "UPDATE srv1_player.festival_event "
+        "SET status = 'CLOSED', "
+        "updated_at = NOW() "
+        "WHERE id = %u",
+        Festival::FESTIVAL_EVENT_ID
+    );
+
+    if (!closeMsg ||
+        closeMsg->uiSQLErrno != 0 ||
+        !closeMsg->Get())
+    {
+        DBManager::instance().DirectQuery("ROLLBACK");
+        sys_err("Festival: erro ao fechar evento");
+        return false;
+    }
+
+    // 6. Confirma todas as operacoes.
+    auto commitMsg = DBManager::instance().DirectQuery("COMMIT");
+
+    if (!commitMsg || commitMsg->uiSQLErrno != 0 || !commitMsg->Get())
+    {
+        sys_err("Festival: erro ao confirmar encerramento");
+        return false;
+    }
+
+    sys_log(
+        0,
+        "Festival: evento %u encerrado e pontuacoes arquivadas",
+        Festival::FESTIVAL_EVENT_ID
+    );
+
+    return true;
+}
+
 namespace Festival
 {
 	bool ProcessCycle()
@@ -443,72 +590,15 @@ namespace Festival
 
 			if (eventExpired)
 			{
-				sys_log(0,
-					"Festival: evento expirou durante recuperacao do ciclo %u",
-					currentCycle
-				);
-
-				// 1. Finaliza as missoes pendentes.
-				auto missionMsg = DBManager::instance().DirectQuery(
-					"UPDATE srv1_player.festival_guild_mission "
-					"SET status = 'FAILED' "
-					"WHERE event_id = %u "
-					"AND status IN ('AVAILABLE', 'IN_PROGRESS')",
-					FESTIVAL_EVENT_ID
-				);
-
-				if (!missionMsg || missionMsg->uiSQLErrno != 0 || !missionMsg->Get())
-				{
-					sys_err("Festival: erro ao finalizar missoes durante encerramento");
+				if (!FinalizeFestivalEvent())
 					return false;
-				}
-				
-				// 2. Zera o ciclo das missoes.
-				auto resetMsg = DBManager::instance().DirectQuery(
-					"UPDATE srv1_player.festival_guild_mission "
-					"SET cycle_id = 0 "
-					"WHERE event_id = %u",
-					FESTIVAL_EVENT_ID
-				);
 
-				if (!resetMsg || resetMsg->uiSQLErrno != 0 || !resetMsg->Get())
-				{
-					sys_err("Festival: erro ao zerar cycle_id das missoes");
-					return false;
-				}
-
-				// 3. Fecha o evento.
-				auto closeMsg = DBManager::instance().DirectQuery(
-					"UPDATE srv1_player.festival_event "
-					"SET status = 'CLOSED', "
-					"ends_at = NOW(), "
-					"cycle_ends_at = NOW(), "
-					"updated_at = NOW() "
-					"WHERE id = %u "
-					"AND status = 'PROCESSING'",
-					FESTIVAL_EVENT_ID
-				);
-
-				if (!closeMsg || closeMsg->uiSQLErrno != 0 || !closeMsg->Get())
-				{
-					sys_err("Festival: erro ao fechar evento durante recuperacao");
-					return false;
-				}
-
-				SQLResult* closeResult = closeMsg->Get();
-
-				if (closeResult->uiAffectedRows != 1)
-				{
-					sys_err("Festival: evento nao foi fechado durante recuperacao");
-					return false;
-				}
-
-				// 3. Desativa a flag do evento.
 				quest::CQuestManager::instance().RequestSetEventFlag(
 					"festival_guild", 0
 				);
 
-				sys_log(0,
+				sys_log(
+					0,
 					"Festival: evento %u encerrado durante recuperacao",
 					FESTIVAL_EVENT_ID
 				);
@@ -681,70 +771,22 @@ namespace Festival
 		// Encerramento definitivo dos sete dias.
 		if (eventExpired)
 		{
-			auto missionMsg = DBManager::instance().DirectQuery(
-				"UPDATE srv1_player.festival_guild_mission "
-				"SET status = 'FAILED' "
-				"WHERE event_id = %u "
-				"AND status IN ('AVAILABLE', 'IN_PROGRESS')",
-				FESTIVAL_EVENT_ID
-			);
-
-			if (!missionMsg || missionMsg->uiSQLErrno != 0 || !missionMsg->Get())
-			{
-				sys_err("Festival: erro ao encerrar missoes do evento");
-				return false;
-			}
-			
-			
-			// 2. Zera o ciclo das missoes.
-			auto resetMsg = DBManager::instance().DirectQuery(
-				"UPDATE srv1_player.festival_guild_mission "
-				"SET cycle_id = 0 "
-				"WHERE event_id = %u",
-				FESTIVAL_EVENT_ID
-			);
-
-			if (!resetMsg || resetMsg->uiSQLErrno != 0 || !resetMsg->Get())
-			{
-				sys_err("Festival: erro ao zerar cycle_id das missoes");
-				return false;
-			}
-
-
-			auto closeMsg = DBManager::instance().DirectQuery(
-				"UPDATE srv1_player.festival_event "
-				"SET status = 'CLOSED', "
-				"ends_at = NOW(), "
-				"cycle_ends_at = NOW(), "
-				"updated_at = NOW() "
-				"WHERE id = %u "
-				"AND status = 'ACTIVE'",
-				FESTIVAL_EVENT_ID
-			);
-
-			if (!closeMsg || closeMsg->uiSQLErrno != 0 || !closeMsg->Get())
-			{
-				sys_err("Festival: erro ao fechar evento");
-				return false;
-			}
-
-			SQLResult* closeResult = closeMsg->Get();
-
-			if (closeResult->uiAffectedRows != 1)
+			if (!FinalizeFestivalEvent())
 				return false;
 
 			quest::CQuestManager::instance().RequestSetEventFlag(
 				"festival_guild", 0
 			);
 
-			sys_log(0,
+			sys_log(
+				0,
 				"Festival: evento %u encerrado apos os sete dias",
 				FESTIVAL_EVENT_ID
 			);
 
 			return true;
 		}
-
+		
 		if (!cycleExpired)
 			return false;
 
@@ -1370,19 +1412,7 @@ namespace Festival
 			sys_err("Festival: erro ao limpar missões");
 			return false;
 		}
-		
-		// voltar id a 0.
-		auto resetID = DBManager::instance().DirectQuery(
-			"ALTER TABLE festival_guild_mission AUTO_INCREMENT = 0"
-		);
 
-		if (!resetID ||
-			resetID->uiSQLErrno != 0 ||
-			!resetID->Get())
-		{
-			sys_err("Festival: erro ao resetar Ids");
-			return false;
-		}
 		// Distribui as missoes do primeiro ciclo.
 		if (!DistributeMissionsForAllGuilds(1))
 		{
@@ -1429,68 +1459,14 @@ namespace Festival
 	
 	bool CloseEvent()
 	{
-		// 1. Finaliza as missoes ainda pendentes.
-		auto missionMsg = DBManager::instance().DirectQuery(
-			"UPDATE srv1_player.festival_guild_mission "
-			"SET status = 'FAILED' "
-			"WHERE event_id = %u "
-			"AND status IN ('AVAILABLE', 'IN_PROGRESS')",
-			FESTIVAL_EVENT_ID
-		);
-
-		if (!missionMsg || missionMsg->uiSQLErrno != 0 || !missionMsg->Get())
-		{
-			sys_err("Festival: erro ao finalizar missoes no encerramento");
+		if (!FinalizeFestivalEvent())
 			return false;
-		}
 
-		// 2. Zera o ciclo das missoes antigas.
-		auto resetMsg = DBManager::instance().DirectQuery(
-			"UPDATE srv1_player.festival_guild_mission "
-			"SET cycle_id = 0 "
-			"WHERE event_id = %u",
-			FESTIVAL_EVENT_ID
-		);
+		quest::CQuestManager::instance().RequestSetEventFlag("festival_guild", 0);
 
-		if (!resetMsg || resetMsg->uiSQLErrno != 0 || !resetMsg->Get())
-		{
-			sys_err("Festival: erro ao zerar cycle_id das missoes");
-			return false;
-		}
-		
-		// 3. Fecha o evento.
-		auto pmsg = DBManager::instance().DirectQuery(
-			"UPDATE srv1_player.festival_event "
-			"SET status = 'CLOSED', "
-			"ends_at = NOW(), "
-			"cycle_ends_at = NOW() "
-			"WHERE id = %u",
-			FESTIVAL_EVENT_ID
-		);
-
-		if (!pmsg || pmsg->uiSQLErrno != 0 || !pmsg->Get())
-		{
-			sys_err("Festival: falha ao encerrar evento");
-			return false;
-		}
-
-		if (pmsg->Get()->uiAffectedRows != 1)
-		{
-			sys_err("Festival: registro do evento nao encontrado");
-			return false;
-		}
-
-		quest::CQuestManager::instance().RequestSetEventFlag(
-			"festival_guild", 0
-		);
-
-		sys_log(0, "Festival: evento %u encerrado", FESTIVAL_EVENT_ID);
-
+		sys_log(0,"Festival: evento %u encerrado manualmente",FESTIVAL_EVENT_ID);
 		return true;
 	}
-
-
-
 
 	void OnMetinKilled(LPCHARACTER ch, DWORD metinVnum)
 	{
