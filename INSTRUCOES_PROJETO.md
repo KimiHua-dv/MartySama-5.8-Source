@@ -51,23 +51,3 @@ Depois, liste só as linhas das seções 1 a 4 do MEMORIA_PROJETO.md que mudaram
 Não repita o que já está no arquivo e não invente nada que não foi feito nesta conversa.
 ```
 
-# Prompt de início de sessão (cole no começo de um chat novo)
-
-```
-Nova sessão. Leia MEMORIA_PROJETO.md e AGENTS.md no repositório (ou use o conteúdo que colei abaixo).
-Resuma em até 5 linhas o estado atual do sistema em que vou trabalhar e comece pela tarefa: <descrever a tarefa e o critério de pronto>.
-Não peça confirmação para decisões de implementação; liste as suposições no final.
-```
-
----
-
-# Como usar no dia a dia
-
-1. **Início:** abra um chat novo no Projeto e cole o prompt de início, com a tarefa e o critério de pronto.
-2. **Durante:** uma tarefa por chat. Quando terminar, faça commit.
-3. **Fim:** cole o prompt de fim de sessão. A IA devolve o bloco de memória.
-4. **Atualizar o arquivo**, de um destes jeitos:
-   - Cole o bloco no fim de `MEMORIA_PROJETO.md` e ajuste as seções 1 a 4; ou
-   - Rode `sh atualizar_memoria.sh --commit` na VM (ele registra a sessão com commits e arquivos pendentes do git); ou
-   - No Codex, peça: "Atualize o MEMORIA_PROJETO.md com o bloco acima e faça commit".
-5. Se o Projeto não consegue ler o GitHub direto, cole o conteúdo de `MEMORIA_PROJETO.md` no início do chat.
