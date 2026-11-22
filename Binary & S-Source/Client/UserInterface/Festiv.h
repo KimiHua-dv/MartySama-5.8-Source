@@ -27,6 +27,13 @@ enum EFestivalMissionStatus
 	FEST_MISSION_FAILED = 3
 };
 
+
+enum EFestivalMissionListStatus
+{
+    FESTIVAL_LIST_ACTIVE = 0,
+    FESTIVAL_LIST_UNAVAILABLE = 1
+};
+
 #pragma pack(push, 1)
 typedef struct SPacketCGFestival
 {
@@ -47,7 +54,8 @@ typedef struct SPacketGCFestival
 
 typedef struct SPacketGCFestivalMissionList
 {
-	WORD count;
+    BYTE status;
+    WORD count;
 } TPacketGCFestivalMissionList;
 
 typedef struct SMission

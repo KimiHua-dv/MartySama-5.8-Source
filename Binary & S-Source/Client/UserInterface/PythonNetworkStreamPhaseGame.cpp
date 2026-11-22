@@ -4899,9 +4899,10 @@ bool CPythonNetworkStream::RecvFestivalPacket()
 	}
 	break;
 
+
 	case FEST_GC_MISSION_LIST:
 	{
-		// Verificar se o payload contém o contador.
+		// 1. Validar tamanho minimo do cabecalho.
 		if (vecBuffer.size() < sizeof(TPacketGCFestivalMissionList))
 		{
 			TraceError("FESTIVAL: payload menor que o cabecalho da lista");
@@ -4913,7 +4914,32 @@ bool CPythonNetworkStream::RecvFestivalPacket()
 				vecBuffer.data()
 				);
 
-		// Calcular o tamanho esperado.
+		// 2. Validar status.
+		if (pList->status != FESTIVAL_LIST_ACTIVE &&
+			pList->status != FESTIVAL_LIST_UNAVAILABLE)
+		{
+			TraceError("FESTIVAL: status de lista desconhecido: %u",
+				pList->status);
+			return false;
+		}
+
+		// 3. O servidor distribui no maximo cinco missoes.
+		if (pList->count > 5)
+		{
+			TraceError("FESTIVAL: quantidade de missoes invalida: %u",
+				pList->count);
+			return false;
+		}
+
+		// 4. UNAVAILABLE obrigatoriamente deve ter count zero.
+		if (pList->status == FESTIVAL_LIST_UNAVAILABLE &&
+			pList->count != 0)
+		{
+			TraceError("FESTIVAL: lista indisponivel com missoes");
+			return false;
+		}
+
+		// 5. Validar tamanho total.
 		size_t expectedSize =
 			sizeof(TPacketGCFestivalMissionList)
 			+ pList->count * sizeof(TFestivalMissionPacket);
@@ -4929,14 +4955,18 @@ bool CPythonNetworkStream::RecvFestivalPacket()
 			return false;
 		}
 
-		// Limpar a lista anterior no cliente.
+		// 6. Atualizar estado da interface e limpar lista anterior.
 		PyCallClassMemberFunc(
 			m_apoPhaseWnd[PHASE_WINDOW_GAME],
-			"ClearFestivalMissions",
-			Py_BuildValue("()")
+			"SetFestivalListStatus",
+			Py_BuildValue("(i)", static_cast<int>(pList->status))
 		);
 
-		// A primeira missão vem depois do contador.
+		// 7. Evento indisponivel: nao existem missoes para processar.
+		if (pList->status == FESTIVAL_LIST_UNAVAILABLE)
+			break;
+
+		// 8. Lista ativa: adicionar as missoes recebidas.
 		size_t readPoint = sizeof(TPacketGCFestivalMissionList);
 
 		for (WORD i = 0; i < pList->count; ++i)
