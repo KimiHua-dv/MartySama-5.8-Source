@@ -48,6 +48,20 @@ enum EFestivalGuildSubHeader
 	FEST_GC_GUILD_STATE
 };
 
+enum EFestivalMissionListStatus
+{
+    FESTIVAL_LIST_ACTIVE = 0,
+    FESTIVAL_LIST_UNAVAILABLE = 1
+};
+
+#pragma pack(push, 1)
+typedef struct SPacketGCFestivalMissionList
+{
+    BYTE status;
+    WORD count;
+} TPacketGCFestivalMissionList;
+#pragma pack(pop)
+
 #pragma pack(push, 1)
 typedef struct SPacketCGFestival
 {
@@ -65,11 +79,6 @@ typedef struct SPacketGCFestival
 	BYTE subheader;
 } TPacketGCFestival;
 #pragma pack(pop)
-
-typedef struct SPacketGCFestivalMissionList
-{
-	WORD count;
-} TPacketGCFestivalMissionList;
 
 // Dados internos do servidor; nao fazem parte do formato de rede.
 typedef struct SMission

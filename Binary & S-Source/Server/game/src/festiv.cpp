@@ -376,6 +376,90 @@ namespace
 
 
 
+bool ClearEvent()
+{
+    DBManager& db = DBManager::instance();
+
+    // IMPORTANTE:
+    // Esta funcao deve ser executada dentro da transacao de StartEvent().
+    // O rollback e o commit ficam sob responsabilidade de StartEvent().
+
+    // 1. Limpa historico PvP da edicao anterior.
+    auto pvpMsg = db.DirectQuery(
+        "DELETE FROM srv1_player.festival_pvp_history "
+        "WHERE event_id = %u",
+        FESTIVAL_EVENT_ID
+    );
+
+    if (!pvpMsg || pvpMsg->uiSQLErrno != 0 || !pvpMsg->Get())
+    {
+        sys_err("Festival: erro ao limpar historico PvP");
+        return false;
+    }
+
+    // 2. Limpa o contador individual de missoes aceitas.
+    auto playerStateMsg = db.DirectQuery(
+        "DELETE FROM srv1_player.festival_player_state "
+        "WHERE event_id = %u",
+        FESTIVAL_EVENT_ID
+    );
+
+    if (!playerStateMsg ||
+        playerStateMsg->uiSQLErrno != 0 ||
+        !playerStateMsg->Get())
+    {
+        sys_err("Festival: erro ao limpar estado individual dos jogadores");
+        return false;
+    }
+
+    // 3. Reseta o estado das guildas.
+    // next_renewal_at recebe a data final do novo ciclo.
+    auto guildResetMsg = db.DirectQuery(
+        "UPDATE srv1_player.festival_guild_state "
+        "SET "
+        "completed_missions = 0, "
+        "renewal_count = 0, "
+        "reward_progress = 0, "
+        "pending_points = 0, "
+        "claimed_chests = 0, "
+        "total_points = 0, "
+        "next_renewal_at = ("
+            "SELECT cycle_ends_at "
+            "FROM srv1_player.festival_event "
+            "WHERE id = %u"
+        ") "
+        "WHERE event_id = %u",
+        FESTIVAL_EVENT_ID,
+        FESTIVAL_EVENT_ID
+    );
+
+    if (!guildResetMsg ||
+        guildResetMsg->uiSQLErrno != 0 ||
+        !guildResetMsg->Get())
+    {
+        sys_err("Festival: erro ao resetar estado das guildas");
+        return false;
+    }
+
+    // 4. Limpa as missoes da edicao anterior.
+    auto missionResetMsg = db.DirectQuery(
+        "DELETE FROM srv1_player.festival_guild_mission "
+        "WHERE event_id = %u",
+        FESTIVAL_EVENT_ID
+    );
+
+    if (!missionResetMsg ||
+        missionResetMsg->uiSQLErrno != 0 ||
+        !missionResetMsg->Get())
+    {
+        sys_err("Festival: erro ao limpar missoes");
+        return false;
+    }
+
+    return true;
+}
+
+
 bool FinalizeFestivalEvent()
 {
     DBManager& db = DBManager::instance();
@@ -491,8 +575,8 @@ bool FinalizeFestivalEvent()
     auto timeMsg = db.DirectQuery(
         "UPDATE srv1_player.festival_event "
         "SET "
-        "ends_at = IF(ends_at IS NULL, NOW(), ends_at), "
-        "cycle_ends_at = IF(status = 'CLOSED', cycle_ends_at, NOW()) "
+        "ends_at = IF(status = 'CLOSED', IFNULL(ends_at, NOW()), NOW()), "
+         "cycle_ends_at = IF(status = 'CLOSED', IFNULL(cycle_ends_at, NOW()), NOW()) "
         "WHERE id = %u",
         Festival::FESTIVAL_EVENT_ID
     );
@@ -1405,9 +1489,12 @@ namespace Festival
 		SendMissionPacket(d, missions);
 	}
 	
+	
 	bool StartEvent(DWORD cycleDurationMinutes)
 	{
 		const DWORD EVENT_DURATION_SECONDS = 7 * 24 * 60 * 60;
+
+		DBManager& db = DBManager::instance();
 
 		if (cycleDurationMinutes == 0 || cycleDurationMinutes > 10080)
 		{
@@ -1416,19 +1503,116 @@ namespace Festival
 			return false;
 		}
 
-		// Mantem o evento fechado durante a preparacao.
-		quest::CQuestManager::instance().RequestSetEventFlag("festival_guild", 0);
+		// 1. Inicia a transacao.
+		auto transactionMsg = db.DirectQuery("START TRANSACTION");
 
-		// Registra o evento e prepara o primeiro ciclo.
-		auto pmsg = DBManager::instance().DirectQuery(
+		if (!transactionMsg || transactionMsg->uiSQLErrno != 0)
+		{
+			sys_err("Festival: erro ao iniciar transacao de abertura");
+			return false;
+		}
+
+		// 2. Bloqueia o evento e verifica a edicao anterior.
+		auto eventMsg = db.DirectQuery(
+			"SELECT "
+			"event.status, "
+			"event.started_at, "
+			"(SELECT COUNT(*) "
+				"FROM srv1_player.festival_guild_state AS gs "
+				"WHERE gs.event_id = event.id), "
+			"(SELECT COUNT(*) "
+				"FROM srv1_player.festival_guild_history AS gh "
+				"WHERE gh.edition_key = event.started_at), "
+			"(SELECT COUNT(*) "
+				"FROM srv1_player.festival_guild_state AS gs "
+				"LEFT JOIN srv1_player.festival_guild_history AS gh "
+					"ON gh.edition_key = event.started_at "
+					"AND gh.guild_id = gs.guild_id "
+				"WHERE gs.event_id = event.id "
+				"AND gh.guild_id IS NULL) "
+			"FROM srv1_player.festival_event AS event "
+			"WHERE event.id = %u "
+			"LIMIT 1 FOR UPDATE",
+			FESTIVAL_EVENT_ID
+		);
+
+		SQLResult* eventResult = GetSelectResult(
+			eventMsg,
+			"validar edicao anterior"
+		);
+
+		if (!eventResult)
+		{
+			db.DirectQuery("ROLLBACK");
+			return false;
+		}
+
+		MYSQL_ROW eventRow = mysql_fetch_row(eventResult->pSQLResult);
+
+		if (!eventRow || !eventRow[0])
+		{
+			db.DirectQuery("ROLLBACK");
+			sys_err("Festival: registro do evento nao encontrado");
+			return false;
+		}
+
+		// Somente uma edicao fechada pode ser substituida.
+		if (strcmp(eventRow[0], "CLOSED") != 0)
+		{
+			db.DirectQuery("ROLLBACK");
+			sys_err("Festival: nao e possivel iniciar, evento nao esta fechado");
+			return false;
+		}
+
+		// 3. Confere o arquivamento da edicao anterior.
+		if (eventRow[1] && eventRow[1][0] != '\0')
+		{
+			DWORD guildCount = 0;
+			DWORD archivedCount = 0;
+			DWORD missingCount = 0;
+
+			if (!eventRow[2] || !eventRow[3] || !eventRow[4])
+			{
+				db.DirectQuery("ROLLBACK");
+				sys_err("Festival: resultado incompleto na verificacao do historico");
+				return false;
+			}
+
+			str_to_number(guildCount, eventRow[2]);
+			str_to_number(archivedCount, eventRow[3]);
+			str_to_number(missingCount, eventRow[4]);
+
+			if (guildCount != archivedCount || missingCount != 0)
+			{
+				db.DirectQuery("ROLLBACK");
+
+				sys_err(
+					"Festival: edicao anterior nao foi arquivada corretamente "
+					"(guildas: %u, historico: %u, ausentes: %u)",
+					guildCount,
+					archivedCount,
+					missingCount
+				);
+
+				return false;
+			}
+		}
+
+		// 4. Mantem a flag desligada durante a preparacao.
+		quest::CQuestManager::instance().RequestSetEventFlag(
+			"festival_guild", 0);
+
+		// 5. Prepara os dados da nova edicao.
+		auto prepareMsg = db.DirectQuery(
 			"UPDATE srv1_player.festival_event "
-			"SET status = 'CLOSED', "
+			"SET "
 			"started_at = NOW(), "
 			"ends_at = DATE_ADD(NOW(), INTERVAL %u SECOND), "
 			"current_cycle = 1, "
 			"cycle_duration_seconds = %u, "
 			"cycle_started_at = NOW(), "
-			"cycle_ends_at = DATE_ADD(NOW(), INTERVAL %u SECOND) "
+			"cycle_ends_at = DATE_ADD(NOW(), INTERVAL %u SECOND), "
+			"updated_at = NOW() "
 			"WHERE id = %u AND status = 'CLOSED'",
 			EVENT_DURATION_SECONDS,
 			cycleDurationMinutes * 60,
@@ -1436,126 +1620,94 @@ namespace Festival
 			FESTIVAL_EVENT_ID
 		);
 
-		if (!pmsg || pmsg->uiSQLErrno != 0 || !pmsg->Get())
+		if (!prepareMsg ||
+			prepareMsg->uiSQLErrno != 0 ||
+			!prepareMsg->Get())
 		{
-			sys_err("Festival: falha ao registrar inicio do evento");
+			db.DirectQuery("ROLLBACK");
+			sys_err("Festival: falha ao preparar nova edicao");
 			return false;
 		}
 
-		SQLResult* pResult = pmsg->Get();
+		SQLResult* pResult = prepareMsg->Get();
 
-		
 		if (pResult->uiAffectedRows != 1)
 		{
-			sys_err("Festival: evento inexistente ou ja ativo");
+			db.DirectQuery("ROLLBACK");
+			sys_err("Festival: nao foi possivel preparar nova edicao");
 			return false;
 		}
 
-		// Limpa historico PvP da edicao anterior.
-		auto pvpMsg = DBManager::instance().DirectQuery(
-			"DELETE FROM srv1_player.festival_pvp_history "
-			"WHERE event_id = %u",
-			FESTIVAL_EVENT_ID
-		);
-
-		if (!pvpMsg || pvpMsg->uiSQLErrno != 0 || !pvpMsg->Get())
+		// 6. Limpa os dados operacionais da edicao anterior.
+		if (!ClearEvent())
 		{
-			sys_err("Festival: erro ao limpar historico PvP");
+			db.DirectQuery("ROLLBACK");
+			sys_err("Festival: falha ao limpar dados da edicao anterior");
 			return false;
 		}
 
-		// Limpa o contador individual de missoes aceitas.
-		auto playerStateMsg = DBManager::instance().DirectQuery(
-			"DELETE FROM srv1_player.festival_player_state "
-			"WHERE event_id = %u",
-			FESTIVAL_EVENT_ID
-		);
-
-		if (!playerStateMsg ||
-			playerStateMsg->uiSQLErrno != 0 ||
-			!playerStateMsg->Get())
-		{
-			sys_err("Festival: erro ao limpar estado individual dos jogadores");
-			return false;
-		}
-		
-		// Limpa o contador pontos.
-		auto pontosResetMsg = DBManager::instance().DirectQuery(
-			"UPDATE srv1_player.festival_guild_state "
-			"SET "
-			"completed_missions = 0, "
-			"renewal_count = 0, "
-			"reward_progress = 0, "
-			"pending_points = 0, "
-			"claimed_chests = 0, "
-			"total_points = 0 "
-			"WHERE event_id = %u",
-			FESTIVAL_EVENT_ID
-		);
-
-		if (!pontosResetMsg ||
-			pontosResetMsg->uiSQLErrno != 0 ||
-			!pontosResetMsg->Get())
-		{
-			sys_err("Festival: erro ao limpar pontos da Guilda");
-			return false;
-		}
-		
-		// Limpa missões.
-		auto missionResetMsg = DBManager::instance().DirectQuery(
-			"DELETE FROM srv1_player.festival_guild_mission "
-			"WHERE event_id = %u",
-			FESTIVAL_EVENT_ID
-		);
-
-		if (!missionResetMsg ||
-			missionResetMsg->uiSQLErrno != 0 ||
-			!missionResetMsg->Get())
-		{
-			sys_err("Festival: erro ao limpar missões");
-			return false;
-		}
-
-		// Distribui as missoes do primeiro ciclo.
+		// 7. Distribui as missoes do primeiro ciclo.
 		if (!DistributeMissionsForAllGuilds(1))
 		{
+			db.DirectQuery("ROLLBACK");
 			sys_err("Festival: falha na distribuicao do ciclo 1");
 			return false;
 		}
 
-
-		// Somente agora o evento pode ser ativado.
-		pmsg = DBManager::instance().DirectQuery(
+		// 8. Ativa o evento ainda dentro da transacao.
+		auto activateMsg = db.DirectQuery(
 			"UPDATE srv1_player.festival_event "
-			"SET status = 'ACTIVE' "
-			"WHERE id = %u AND status = 'CLOSED' AND current_cycle = 1",
+			"SET status = 'ACTIVE', updated_at = NOW() "
+			"WHERE id = %u "
+			"AND status = 'CLOSED' "
+			"AND current_cycle = 1",
 			FESTIVAL_EVENT_ID
 		);
 
-		if (!pmsg || pmsg->uiSQLErrno != 0 || !pmsg->Get())
+		if (!activateMsg ||
+			activateMsg->uiSQLErrno != 0 ||
+			!activateMsg->Get())
 		{
+			db.DirectQuery("ROLLBACK");
 			sys_err("Festival: falha ao ativar evento");
 			return false;
 		}
 
-		pResult = pmsg->Get();
+		pResult = activateMsg->Get();
 
 		if (pResult->uiAffectedRows != 1)
 		{
+			db.DirectQuery("ROLLBACK");
 			sys_err("Festival: evento nao foi ativado");
 			return false;
 		}
 
+		// 9. Confirma todas as operacoes.
+		auto commitMsg = db.DirectQuery("COMMIT");
+
+		if (!commitMsg ||
+			commitMsg->uiSQLErrno != 0 ||
+			!commitMsg->Get())
+		{
+			db.DirectQuery("ROLLBACK");
+			sys_err("Festival: erro ao confirmar abertura do evento");
+			return false;
+		}
+
+		// 10. A flag so e ativada depois do COMMIT.
 		quest::CQuestManager::instance().RequestSetEventFlag(
 			"festival_guild", 1);
 
-		sys_log(0,
+		sys_log(
+			0,
 			"Festival: evento %u iniciado. Ciclo 1, duracao %u minutos",
 			FESTIVAL_EVENT_ID,
-			cycleDurationMinutes);
+			cycleDurationMinutes
+		);
 
 		return true;
 	}
+
 
 
 	
