@@ -62,4 +62,90 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 - Proposta (não verificada/compilada): reforçar validação de guildas, conferência do arquivamento e preservação de datas em `FinalizeFestivalEvent()`.
 - Decisões: não exigir Work mode nem reenvio de arquivos para continuar a análise; apresentar alterações sugeridas com instruções claras.
 - Compilou/testou na VM: sim.
-- Próximo passo: adicionar protocolo para que exiba a mensagem "evento encerrado ou fora de execução!" quando evento estiver em CLOSED
+- Próximo passo: 
+Encontrei dois pontos importantes na implementação atual:
+1. StartEvent() não é atômico. Ela marca o evento como CLOSED, atualiza as datas e o ciclo e, em seguida, executa várias operações de limpeza e distribuição separadamente. Se uma delas falhar, a função retorna false, mas as operações anteriores já podem ter sido gravadas.
+2. O protocolo atual não consegue representar uma lista indisponível. TPacketGCFestivalMissionList contém apenas WORD count. Além disso, SendMissionPacket() retorna sem enviar nada quando a lista está vazia. Portanto, o cliente não recebe uma informação explícita de encerramento.
+Vou tratar as duas mudanças em conjunto, mas sem misturar suas responsabilidades: a abertura precisa ser consistente no banco; a interface precisa receber um estado explícito do servidor. A mensagem será exibida quando o estado do evento for CLOSED ou PROCESSING, e não simplesmente quando a lista tiver zero missões.
+1. Abertura de uma nova edição — StartEvent()
+A implementação atual confirma que a preparação ocorre em várias consultas independentes:
+- Atualiza festival_event para CLOSED, já alterando started_at e current_cycle.
+- Apaga festival_pvp_history.
+- Apaga festival_player_state.
+- Zera a pontuação em festival_guild_state.
+- Apaga festival_guild_mission.
+- Distribui as missões do ciclo 1.
+- Só então altera o status para ACTIVE.
+A correção será colocar essa sequência em uma única transação, com o registro de festival_event bloqueado por SELECT ... FOR UPDATE.
+
+A sequência segura será:
+1. Iniciar transação.
+2. Bloquear o registro do evento.
+3. Confirmar que o evento está CLOSED.
+4. Se já existe uma edição anterior, conferir se todas as guildas foram arquivadas em festival_guild_history.
+5. Atualizar as datas e preparar o ciclo 1.
+6. Limpar os dados operacionais da edição anterior.
+7. Distribuir as missões do ciclo 1.
+8. Alterar o status para ACTIVE.
+9. Executar COMMIT.
+10. Somente após o commit, ativar festival_guild.
+Se qualquer etapa falhar, executar ROLLBACK.
+
+Um detalhe importante: DistributeMissionsForAllGuilds() já utiliza GET_LOCK() e RELEASE_LOCK(). Não vamos criar outro mecanismo de distribuição. Precisamos preservar esse mecanismo e confirmar que as consultas transacionais permanecem na mesma conexão durante toda a execução.
+
+Também precisamos confirmar que as tabelas envolvidas utilizam InnoDB. Sem isso, a transação não garante a atomicidade das operações.
+2. Protocolo para informar o encerramento
+A estrutura atual, tanto no servidor quanto no cliente, é:
+typedef struct SPacketGCFestivalMissionList
+{
+    WORD count;
+} TPacketGCFestivalMissionList;
+
+
+Minha proposta é substituir por:
+enum EFestivalMissionListStatus
+{
+    FESTIVAL_LIST_ACTIVE = 0,
+    FESTIVAL_LIST_UNAVAILABLE = 1
+};
+
+#pragma pack(push, 1)
+typedef struct SPacketGCFestivalMissionList
+{
+    BYTE status;
+    WORD count;
+} TPacketGCFestivalMissionList;
+#pragma pack(pop)
+
+
+O tamanho do payload será de 3 bytes. O #pragma pack é importante para garantir que servidor e cliente utilizem exatamente o mesmo layout.
+
+Arquivos que precisam receber a alteração:
+Arquivo	Alteração
+Server/game/src/festiv.h	Enum e estrutura do pacote
+Client/UserInterface/Festiv.h	Mesma enum e estrutura
+Server/game/src/festiv.cpp	Envio do status e da lista
+Client/UserInterface/PythonNetworkStreamPhaseGame.cpp	Leitura do novo payload
+root/uifestival.py	Exibição da mensagem e controle da lista
+
+packet_info.cpp não precisa de alteração no tamanho do pacote principal: ele já registra HEADER_GC_FESTIVAL com sizeof(TPacketGCFestival), e o pacote é dinâmico.
+3. Comportamento esperado
+Estado no banco	Status enviado	Count	Cliente
+ACTIVE	ACTIVE	Maior que zero	Exibe missões
+ACTIVE	ACTIVE	Zero	Lista vazia
+PROCESSING	UNAVAILABLE	Zero	Evento indisponível
+CLOSED	UNAVAILABLE	Zero	Evento finalizado
+
+No cliente, o fluxo será:
+- Recebe UNAVAILABLE: limpa as missões antigas e exibe "Evento finalizado".
+- Recebe ACTIVE: remove a mensagem e atualiza a lista.
+- Recebe ACTIVE com zero missões: mantém a lista vazia, sem afirmar que o evento terminou.
+Isso evita um erro importante da implementação atual: SendMissionPacket() simplesmente retorna quando missions.empty(), deixando o cliente sem saber que a lista antiga não é mais válida.
+4. Um ponto que ainda precisa ser conferido
+O arquivo root/uifestival.py contém a classe Festival, com ClearFestivalMissions(), AppendFestivalMission() e RefreshMissionList(). Porém, a busca na source não encontrou uma implementação Python correspondente ao callback OpenFestval chamado pelo C++.
+
+Não vou presumir que esse callback está corretamente conectado à janela. Precisamos conferir a ponte entre PHASE_WINDOW_GAME e uifestival.Festival antes de definir onde chamar a nova função de exibição.
+
+Estado desta etapa: auditoria da implementação atual realizada; nenhuma alteração foi aplicada ou compilada nesta etapa.
+
+O próximo passo é fechar a implementação do protocolo e a integração Python, incluindo a verificação da ponte da interface. Depois disso, entrego a substituição completa de StartEvent() e o protocolo, com os pontos exatos de inserção e os testes para executar na VM.
