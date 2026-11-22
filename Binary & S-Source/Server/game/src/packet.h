@@ -769,6 +769,28 @@ static_assert(sizeof(TOwsapSimplePlayerInformation) == 80,
 static_assert(sizeof(TPacketGCPlayerCreateSuccessOwsap) == 82,
     "Pacote Owsap de criacao deve possuir 82 bytes.");
 	
+static_assert(PLAYER_PER_ACCOUNT == 5,
+    "Quantidade de slots incompatível com Owsap.");
+
+static_assert(sizeof(TOwsapSimplePlayerInformation) == 80,
+    "Tamanho incorreto da estrutura Owsap.");
+
+static_assert(sizeof(TPacketGCLoginSuccessOwsap) == 494,
+    "Tamanho incorreto do Login Success Owsap.");
+
+static_assert(offsetof(TPacketGCLoginSuccessOwsap, guild_id) == 401,
+    "Offset incorreto de guild_id.");
+
+static_assert(offsetof(TPacketGCLoginSuccessOwsap, guild_name) == 421,
+    "Offset incorreto de guild_name.");
+
+static_assert(offsetof(TPacketGCLoginSuccessOwsap, handle) == 486,
+    "Offset incorreto de handle.");
+
+static_assert(offsetof(TPacketGCLoginSuccessOwsap, random_key) == 490,
+    "Offset incorreto de random_key.");
+
+	
 typedef struct command_attack
 {
 	BYTE	bHeader;
