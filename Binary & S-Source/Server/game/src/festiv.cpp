@@ -375,11 +375,13 @@ namespace
 }
 
 
+
 bool FinalizeFestivalEvent()
 {
-    auto transactionMsg = DBManager::instance().DirectQuery(
-        "START TRANSACTION"
-    );
+    DBManager& db = DBManager::instance();
+
+    // 1. Inicia a transacao.
+    auto transactionMsg = db.DirectQuery("START TRANSACTION");
 
     if (!transactionMsg || transactionMsg->uiSQLErrno != 0)
     {
@@ -387,9 +389,9 @@ bool FinalizeFestivalEvent()
         return false;
     }
 
-    // 1. Bloqueia o registro do evento.
-    auto eventMsg = DBManager::instance().DirectQuery(
-        "SELECT status, started_at "
+    // 2. Bloqueia o evento e obtem os dados da edicao.
+    auto eventMsg = db.DirectQuery(
+        "SELECT status, started_at, ends_at "
         "FROM srv1_player.festival_event "
         "WHERE id = %u "
         "LIMIT 1 FOR UPDATE",
@@ -403,7 +405,7 @@ bool FinalizeFestivalEvent()
 
     if (!eventResult)
     {
-        DBManager::instance().DirectQuery("ROLLBACK");
+        db.DirectQuery("ROLLBACK");
         return false;
     }
 
@@ -411,13 +413,63 @@ bool FinalizeFestivalEvent()
 
     if (!eventRow || !eventRow[0] || !eventRow[1])
     {
-        DBManager::instance().DirectQuery("ROLLBACK");
-        sys_err("Festival: registro do evento invalido");
+        db.DirectQuery("ROLLBACK");
+        sys_err("Festival: registro do evento incompleto");
         return false;
     }
 
-    // 2. Falha as missoes ainda pendentes.
-    auto missionMsg = DBManager::instance().DirectQuery(
+    const bool alreadyClosed = strcmp(eventRow[0], "CLOSED") == 0;
+
+    if (!alreadyClosed &&
+        strcmp(eventRow[0], "ACTIVE") != 0 &&
+        strcmp(eventRow[0], "PROCESSING") != 0)
+    {
+        db.DirectQuery("ROLLBACK");
+        sys_err("Festival: estado invalido para encerramento");
+        return false;
+    }
+
+    // 3. Verifica se existem estados de guildas para arquivar.
+    auto guildCountMsg = db.DirectQuery(
+        "SELECT COUNT(*) "
+        "FROM srv1_player.festival_guild_state "
+        "WHERE event_id = %u",
+        Festival::FESTIVAL_EVENT_ID
+    );
+
+    SQLResult* guildCountResult = GetSelectResult(
+        guildCountMsg,
+        "contar guildas para arquivamento"
+    );
+
+    if (!guildCountResult)
+    {
+        db.DirectQuery("ROLLBACK");
+        return false;
+    }
+
+    MYSQL_ROW guildCountRow = mysql_fetch_row(
+        guildCountResult->pSQLResult
+    );
+
+    if (!guildCountRow || !guildCountRow[0])
+    {
+        db.DirectQuery("ROLLBACK");
+        return false;
+    }
+
+    DWORD guildCount = 0;
+    str_to_number(guildCount, guildCountRow[0]);
+
+    if (guildCount == 0)
+    {
+        db.DirectQuery("ROLLBACK");
+        sys_err("Festival: nenhuma guilda encontrada para arquivamento");
+        return false;
+    }
+
+    // 4. Falha as missoes ainda pendentes.
+    auto missionMsg = db.DirectQuery(
         "UPDATE srv1_player.festival_guild_mission "
         "SET status = 'FAILED' "
         "WHERE event_id = %u "
@@ -429,47 +481,45 @@ bool FinalizeFestivalEvent()
         missionMsg->uiSQLErrno != 0 ||
         !missionMsg->Get())
     {
-        DBManager::instance().DirectQuery("ROLLBACK");
+        db.DirectQuery("ROLLBACK");
         sys_err("Festival: erro ao finalizar missoes");
         return false;
     }
 
-    // 3. Define o horario definitivo de encerramento.
-    // Se ja estiver CLOSED, preserva o horario registrado.
-    auto timeMsg = DBManager::instance().DirectQuery(
+    // 5. Define o horario definitivo de encerramento.
+    // Uma chamada repetida preserva o horario ja registrado.
+    auto timeMsg = db.DirectQuery(
         "UPDATE srv1_player.festival_event "
-        "SET ends_at = IF(status = 'CLOSED', ends_at, NOW()), "
-        "cycle_ends_at = NOW() "
+        "SET "
+        "ends_at = IF(ends_at IS NULL, NOW(), ends_at), "
+        "cycle_ends_at = IF(status = 'CLOSED', cycle_ends_at, NOW()) "
         "WHERE id = %u",
         Festival::FESTIVAL_EVENT_ID
     );
 
-    if (!timeMsg || timeMsg->uiSQLErrno != 0 || !timeMsg->Get())
+    if (!timeMsg ||
+        timeMsg->uiSQLErrno != 0 ||
+        !timeMsg->Get())
     {
-        DBManager::instance().DirectQuery("ROLLBACK");
+        db.DirectQuery("ROLLBACK");
         sys_err("Festival: erro ao registrar encerramento");
         return false;
     }
 
-    // 4. Arquiva todas as guildas, inclusive as que possuem zero pontos.
-    auto archiveMsg = DBManager::instance().DirectQuery(
+    // 6. Arquiva todas as guildas, inclusive as que possuem zero pontos.
+    auto archiveMsg = db.DirectQuery(
         "INSERT INTO srv1_player.festival_guild_history "
         "(edition_key, started_at, ended_at, guild_id, total_points) "
-
         "SELECT "
         "event.started_at, "
         "event.started_at, "
         "event.ends_at, "
         "guild.guild_id, "
         "guild.total_points "
-
         "FROM srv1_player.festival_event AS event "
-
         "INNER JOIN srv1_player.festival_guild_state AS guild "
         "ON guild.event_id = event.id "
-
         "WHERE event.id = %u "
-
         "ON DUPLICATE KEY UPDATE "
         "ended_at = VALUES(ended_at), "
         "total_points = VALUES(total_points)",
@@ -480,16 +530,64 @@ bool FinalizeFestivalEvent()
         archiveMsg->uiSQLErrno != 0 ||
         !archiveMsg->Get())
     {
-        DBManager::instance().DirectQuery("ROLLBACK");
+        db.DirectQuery("ROLLBACK");
         sys_err("Festival: erro ao arquivar pontuacao das guildas");
         return false;
     }
 
-    // 5. Fecha o evento.
-    auto closeMsg = DBManager::instance().DirectQuery(
+    // 7. Confere se todas as guildas foram arquivadas.
+    auto historyCountMsg = db.DirectQuery(
+        "SELECT COUNT(*) "
+        "FROM srv1_player.festival_guild_history "
+        "WHERE edition_key = ("
+            "SELECT started_at "
+            "FROM srv1_player.festival_event "
+            "WHERE id = %u"
+        ")",
+        Festival::FESTIVAL_EVENT_ID
+    );
+
+    SQLResult* historyCountResult = GetSelectResult(
+        historyCountMsg,
+        "verificar historico das guildas"
+    );
+
+    if (!historyCountResult)
+    {
+        db.DirectQuery("ROLLBACK");
+        return false;
+    }
+
+    MYSQL_ROW historyCountRow = mysql_fetch_row(
+        historyCountResult->pSQLResult
+    );
+
+    if (!historyCountRow || !historyCountRow[0])
+    {
+        db.DirectQuery("ROLLBACK");
+        return false;
+    }
+
+    DWORD archivedCount = 0;
+    str_to_number(archivedCount, historyCountRow[0]);
+
+    if (archivedCount != guildCount)
+    {
+        db.DirectQuery("ROLLBACK");
+
+        sys_err(
+            "Festival: quantidade de guildas arquivadas divergente (%u/%u)",
+            archivedCount,
+            guildCount
+        );
+
+        return false;
+    }
+
+    // 8. Fecha o evento somente depois do arquivamento.
+    auto closeMsg = db.DirectQuery(
         "UPDATE srv1_player.festival_event "
-        "SET status = 'CLOSED', "
-        "updated_at = NOW() "
+        "SET status = 'CLOSED', updated_at = NOW() "
         "WHERE id = %u",
         Festival::FESTIVAL_EVENT_ID
     );
@@ -498,28 +596,33 @@ bool FinalizeFestivalEvent()
         closeMsg->uiSQLErrno != 0 ||
         !closeMsg->Get())
     {
-        DBManager::instance().DirectQuery("ROLLBACK");
+        db.DirectQuery("ROLLBACK");
         sys_err("Festival: erro ao fechar evento");
         return false;
     }
 
-    // 6. Confirma todas as operacoes.
-    auto commitMsg = DBManager::instance().DirectQuery("COMMIT");
+    // 9. Confirma todas as operacoes.
+    auto commitMsg = db.DirectQuery("COMMIT");
 
-    if (!commitMsg || commitMsg->uiSQLErrno != 0 || !commitMsg->Get())
+    if (!commitMsg ||
+        commitMsg->uiSQLErrno != 0 ||
+        !commitMsg->Get())
     {
+        db.DirectQuery("ROLLBACK");
         sys_err("Festival: erro ao confirmar encerramento");
         return false;
     }
 
     sys_log(
         0,
-        "Festival: evento %u encerrado e pontuacoes arquivadas",
-        Festival::FESTIVAL_EVENT_ID
+        "Festival: evento %u encerrado. %u guildas arquivadas",
+        Festival::FESTIVAL_EVENT_ID,
+        archivedCount
     );
 
     return true;
 }
+
 
 namespace Festival
 {

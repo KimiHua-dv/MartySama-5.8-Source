@@ -56,4 +56,10 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 
 ## Diário de sessões
 
-(Entradas novas são adicionadas no fim deste arquivo pelo `atualizar_memoria.sh` ou pela IA no final da sessão.)
+### 2026-11-22 — Metodologia e encerramento do Festival
+- Feito: definida a regra de continuidade pelo chat normal, com consulta direta ao GitHub e entrega de código com localização precisa.
+- Confirmado na source: `festiv.cpp` já contém uma versão global de `FinalizeFestivalEvent()`; os três caminhos de encerramento estão integrados; `StartEvent()` já não reseta AUTO_INCREMENT na branch consultada.
+- Proposta (não verificada/compilada): reforçar validação de guildas, conferência do arquivamento e preservação de datas em `FinalizeFestivalEvent()`.
+- Decisões: não exigir Work mode nem reenvio de arquivos para continuar a análise; apresentar alterações sugeridas com instruções claras.
+- Compilou/testou na VM: sim.
+- Próximo passo: adicionar protocolo para que exiba a mensagem "evento encerrado ou fora de execução!" quando evento estiver em CLOSED
