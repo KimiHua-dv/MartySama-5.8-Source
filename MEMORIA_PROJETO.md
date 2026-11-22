@@ -22,8 +22,9 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 
 ### Festival de Guildas
 - Pronto: distribuição de missões, hooks (Metin, monstro, PvP, coleta), progresso individual, expiração, pontuação coletiva, comando GM, `ProcessCycle()`, tabela de histórico, encerramento manual testado.
-- Em andamento: `FinalizeFestivalEvent()` (proposta, não compilada), integração dos 3 caminhos de encerramento.
-- Pendente: protocolo da lista (`FESTIVAL_LIST_ACTIVE/UNAVAILABLE`), parser C++ e Python do cliente, resgate dos baús, painel histórico (futuro).
+- Concluído: FinalizeFestivalEvent() implementada e integrada aos três caminhos de encerramento, conforme auditoria da source.
+-Em andamento: tornar StartEvent() atômica e implementar o protocolo explícito de disponibilidade da lista, incluindo integração com a interface Python.
+- Pendente: concluir protocolo da lista, parser C++ e integração Python; finalizar resgate dos baús. Painel histórico permanece como funcionalidade futura.
 
 ### Sistema de reinos
 - (preencher status)
@@ -33,8 +34,9 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 
 ## 3. Pendências globais (ordem de prioridade)
 
-1. Finalizar o ciclo de encerramento do Festival.
-2. (adicionar)
+-Tornar StartEvent() atômica, validar arquivamento histórico e confirmar InnoDB nas tabelas envolvidas.
+-Implementar o protocolo FESTIVAL_LIST_ACTIVE/UNAVAILABLE no servidor e cliente, incluindo a ponte Python.
+-Finalizar o resgate dos baús.
 
 ## 4. Problemas conhecidos / armadilhas
 
