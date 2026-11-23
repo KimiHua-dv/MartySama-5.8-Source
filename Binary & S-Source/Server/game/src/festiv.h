@@ -32,6 +32,7 @@ namespace Festival
 	int GetFestivalConfig(const char* configKey, int defaultValue);
 	bool AddGuildPoints(DWORD guildID, DWORD points);
 	void SendGuildState(LPCHARACTER ch);
+	bool PreparePlayerChestClaims(LPCHARACTER ch);
 }
 
 enum EFestivalGuildHeader

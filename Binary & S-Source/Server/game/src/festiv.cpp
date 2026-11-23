@@ -12,9 +12,27 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <climits>
 
 namespace
 {
+	
+	struct SFestivalChest
+	{
+		DWORD id;
+		BYTE chestIndex;
+		DWORD requiredPoints;
+		WORD rollCount;
+	};
+
+	struct SFestivalChestReward
+	{
+		DWORD vnum;
+		DWORD weight;
+		WORD minCount;
+		WORD maxCount;
+	};
+	
 	const size_t FESTIVAL_MAX_MISSIONS = 5;
 
 	SQLResult* GetSelectResult(std::unique_ptr<SQLMsg>& pmsg, const char* operation)
@@ -2823,6 +2841,14 @@ namespace Festival
 
 		if (guildID == 0)
 			return;
+		
+		if (!PreparePlayerChestClaims(ch))
+		{
+			sys_err(
+				"Festival: nao foi possivel preparar recompensas do jogador %u",
+				ch->GetPlayerID()
+			);
+		}
 
 		auto pmsg = DBManager::instance().DirectQuery(
 			"SELECT total_points, reward_progress, pending_points, claimed_chests "
@@ -2864,6 +2890,436 @@ namespace Festival
 		memcpy(buffer.data() + sizeof(header), &payload, sizeof(payload));
 
 		d->Packet(buffer.data(), buffer.size());
+	}
+
+	bool PreparePlayerChestClaims(LPCHARACTER ch)
+	{
+		if (!ch || !ch->GetDesc() || !ch->GetGuild())
+			return false;
+
+		const DWORD guildID = ch->GetGuild()->GetID();
+		const DWORD playerID = ch->GetPlayerID();
+
+		if (guildID == 0 || playerID == 0)
+			return false;
+
+		DBManager& db = DBManager::instance();
+
+		// ---------------------------------------------------------
+		// 1. Inicia transacao.
+		// ---------------------------------------------------------
+
+		auto transactionMsg = db.DirectQuery("START TRANSACTION");
+
+		if (!transactionMsg || transactionMsg->uiSQLErrno != 0)
+		{
+			sys_err("Festival: falha ao iniciar transacao de recompensas");
+			return false;
+		}
+
+		// ---------------------------------------------------------
+		// 2. Bloqueia o estado da guilda.
+		// Evita duas preparacoes simultaneas para a mesma guilda.
+		// ---------------------------------------------------------
+
+		auto guildMsg = db.DirectQuery(
+			"SELECT total_points "
+			"FROM srv1_player.festival_guild_state "
+			"WHERE event_id = %u AND guild_id = %u "
+			"LIMIT 1 FOR UPDATE",
+			FESTIVAL_EVENT_ID,
+			guildID
+		);
+
+		SQLResult* guildResult = GetSelectResult(
+			guildMsg,
+			"consultar pontos para recompensas"
+		);
+
+		if (!guildResult)
+		{
+			db.DirectQuery("ROLLBACK");
+			return false;
+		}
+
+		MYSQL_ROW guildRow = mysql_fetch_row(guildResult->pSQLResult);
+
+		if (!guildRow || !guildRow[0])
+		{
+			db.DirectQuery("ROLLBACK");
+			sys_err("Festival: estado da guilda %u nao encontrado", guildID);
+			return false;
+		}
+
+		DWORD totalPoints = 0;
+		str_to_number(totalPoints, guildRow[0]);
+
+		// ---------------------------------------------------------
+		// 3. Verifica a edicao atual.
+		// edition_key deve ser o started_at da edicao, nao NOW().
+		// ---------------------------------------------------------
+
+		auto eventMsg = db.DirectQuery(
+			"SELECT started_at "
+			"FROM srv1_player.festival_event "
+			"WHERE id = %u LIMIT 1",
+			FESTIVAL_EVENT_ID
+		);
+
+		SQLResult* eventResult = GetSelectResult(
+			eventMsg,
+			"consultar edicao do festival"
+		);
+
+		if (!eventResult)
+		{
+			db.DirectQuery("ROLLBACK");
+			return false;
+		}
+
+		MYSQL_ROW eventRow = mysql_fetch_row(eventResult->pSQLResult);
+
+		if (!eventRow || !eventRow[0] || eventRow[0][0] == '\0')
+		{
+			db.DirectQuery("ROLLBACK");
+			sys_err("Festival: started_at da edicao nao encontrado");
+			return false;
+		}
+
+		// ---------------------------------------------------------
+		// 4. Carrega os baus habilitados.
+		// ---------------------------------------------------------
+
+		auto chestMsg = db.DirectQuery(
+			"SELECT id, chest_index, required_points, roll_count "
+			"FROM srv1_player.festival_chests "
+			"WHERE event_id = %u AND enabled = 1 "
+			"ORDER BY chest_index",
+			FESTIVAL_EVENT_ID
+		);
+
+		SQLResult* chestResult = GetSelectResult(
+			chestMsg,
+			"carregar baus do festival"
+		);
+
+		if (!chestResult)
+		{
+			db.DirectQuery("ROLLBACK");
+			return false;
+		}
+
+		std::vector<SFestivalChest> chests;
+
+		MYSQL_ROW chestRow = NULL;
+
+		while ((chestRow = mysql_fetch_row(chestResult->pSQLResult)))
+		{
+			if (!chestRow[0] || !chestRow[1] ||
+				!chestRow[2] || !chestRow[3])
+			{
+				db.DirectQuery("ROLLBACK");
+				sys_err("Festival: registro de bau incompleto");
+				return false;
+			}
+
+			SFestivalChest chest = {};
+
+			str_to_number(chest.id, chestRow[0]);
+			str_to_number(chest.chestIndex, chestRow[1]);
+			str_to_number(chest.requiredPoints, chestRow[2]);
+			str_to_number(chest.rollCount, chestRow[3]);
+
+			if (chest.id == 0 || chest.rollCount == 0)
+			{
+				db.DirectQuery("ROLLBACK");
+				sys_err("Festival: configuracao invalida de bau");
+				return false;
+			}
+
+			chests.push_back(chest);
+		}
+
+		// ---------------------------------------------------------
+		// 5. Para cada sequencia elegivel, cria o resgate.
+		//
+		// Elegibilidade:
+		// total_points >= sequence_no * 2000 + required_points
+		//
+		// A chave unica da tabela impede duplicacao.
+		// ---------------------------------------------------------
+
+		for (size_t chestIndex = 0; chestIndex < chests.size(); ++chestIndex)
+		{
+			const SFestivalChest& chest = chests[chestIndex];
+
+			for (DWORD sequenceNo = 0; ; ++sequenceNo)
+			{
+				const unsigned long long requiredTotal =
+					static_cast<unsigned long long>(sequenceNo) * 2000ULL
+					+ chest.requiredPoints;
+
+				if (requiredTotal > totalPoints)
+					break;
+
+				// -------------------------------------------------
+				// 5.1 Insere o resgate.
+				//
+				// INSERT IGNORE:
+				// - 1 linha afetada: resgate novo.
+				// - 0 linhas afetadas: ja existia.
+				// -------------------------------------------------
+
+				auto claimMsg = db.DirectQuery(
+					"INSERT IGNORE INTO srv1_player.festival_chest_claims "
+					"("
+						"event_id, edition_key, guild_id, player_id, "
+						"sequence_no, chest_id, chest_index, status"
+					") "
+					"SELECT "
+						"%u, started_at, %u, %u, %u, %u, %u, 'PENDING' "
+					"FROM srv1_player.festival_event "
+					"WHERE id = %u",
+					FESTIVAL_EVENT_ID,
+					guildID,
+					playerID,
+					sequenceNo,
+					chest.id,
+					chest.chestIndex,
+					FESTIVAL_EVENT_ID
+				);
+
+				if (!claimMsg ||
+					claimMsg->uiSQLErrno != 0 ||
+					!claimMsg->Get())
+				{
+					db.DirectQuery("ROLLBACK");
+
+					sys_err(
+						"Festival: erro ao criar resgate do jogador %u",
+						playerID
+					);
+
+					return false;
+				}
+
+				SQLResult* claimResult = claimMsg->Get();
+
+				// Resgate ja existe. O sorteio anterior deve ser preservado.
+				if (claimResult->uiAffectedRows == 0)
+					continue;
+
+				if (claimResult->uiAffectedRows != 1)
+				{
+					db.DirectQuery("ROLLBACK");
+					sys_err("Festival: quantidade inesperada de resgates criados");
+					return false;
+				}
+
+				// -------------------------------------------------
+				// 5.2 Recupera o ID do resgate criado.
+				// -------------------------------------------------
+
+				auto idMsg = db.DirectQuery("SELECT LAST_INSERT_ID()");
+
+				SQLResult* idResult = GetSelectResult(
+					idMsg,
+					"recuperar id do resgate"
+				);
+
+				if (!idResult)
+				{
+					db.DirectQuery("ROLLBACK");
+					return false;
+				}
+
+				MYSQL_ROW idRow = mysql_fetch_row(idResult->pSQLResult);
+
+				if (!idRow || !idRow[0])
+				{
+					db.DirectQuery("ROLLBACK");
+					sys_err("Festival: nao foi possivel recuperar claim_id");
+					return false;
+				}
+
+				DWORD claimID = 0;
+				str_to_number(claimID, idRow[0]);
+
+				if (claimID == 0)
+				{
+					db.DirectQuery("ROLLBACK");
+					return false;
+				}
+
+				// -------------------------------------------------
+				// 5.3 Carrega as recompensas habilitadas do bau.
+				// -------------------------------------------------
+
+				auto rewardMsg = db.DirectQuery(
+					"SELECT vnum, weight, min_count, max_count "
+					"FROM srv1_player.festival_chest_rewards "
+					"WHERE chest_id = %u AND enabled = 1 "
+					"ORDER BY id",
+					chest.id
+				);
+
+				SQLResult* rewardResult = GetSelectResult(
+					rewardMsg,
+					"carregar recompensas do bau"
+				);
+
+				if (!rewardResult)
+				{
+					db.DirectQuery("ROLLBACK");
+					return false;
+				}
+
+				std::vector<SFestivalChestReward> rewards;
+				unsigned long long totalWeight = 0;
+
+				MYSQL_ROW rewardRow = NULL;
+
+				while ((rewardRow = mysql_fetch_row(rewardResult->pSQLResult)))
+				{
+					if (!rewardRow[0] || !rewardRow[1] ||
+						!rewardRow[2] || !rewardRow[3])
+					{
+						db.DirectQuery("ROLLBACK");
+						sys_err("Festival: recompensa incompleta no bau %u", chest.id);
+						return false;
+					}
+
+					SFestivalChestReward reward = {};
+
+					str_to_number(reward.vnum, rewardRow[0]);
+					str_to_number(reward.weight, rewardRow[1]);
+					str_to_number(reward.minCount, rewardRow[2]);
+					str_to_number(reward.maxCount, rewardRow[3]);
+
+					if (reward.vnum == 0 ||
+						reward.weight == 0 ||
+						reward.minCount == 0 ||
+						reward.maxCount < reward.minCount)
+					{
+						db.DirectQuery("ROLLBACK");
+						sys_err("Festival: recompensa invalida no bau %u", chest.id);
+						return false;
+					}
+
+					totalWeight += reward.weight;
+
+					if (totalWeight > 0x7FFFFFFFULL)
+					{
+						db.DirectQuery("ROLLBACK");
+						sys_err("Festival: soma dos pesos excede limite do sorteio");
+						return false;
+					}
+
+					rewards.push_back(reward);
+				}
+
+				if (rewards.empty() || totalWeight == 0)
+				{
+					db.DirectQuery("ROLLBACK");
+					sys_err("Festival: bau %u sem recompensas validas", chest.id);
+					return false;
+				}
+
+				// -------------------------------------------------
+				// 5.4 Executa os sorteios e persiste cada resultado.
+				// -------------------------------------------------
+
+				for (WORD rollIndex = 0; rollIndex < chest.rollCount; ++rollIndex)
+				{
+					const int randomWeight = number(
+						1,
+						static_cast<int>(totalWeight)
+					);
+
+					unsigned long long accumulatedWeight = 0;
+					const SFestivalChestReward* selectedReward = NULL;
+
+					for (size_t rewardIndex = 0;
+						 rewardIndex < rewards.size();
+						 ++rewardIndex)
+					{
+						accumulatedWeight += rewards[rewardIndex].weight;
+
+						if (randomWeight <= accumulatedWeight)
+						{
+							selectedReward = &rewards[rewardIndex];
+							break;
+						}
+					}
+
+					if (!selectedReward)
+					{
+						db.DirectQuery("ROLLBACK");
+						sys_err("Festival: falha ao selecionar recompensa");
+						return false;
+					}
+
+					const WORD itemCount = static_cast<WORD>(
+						number(
+							static_cast<int>(selectedReward->minCount),
+							static_cast<int>(selectedReward->maxCount)
+						)
+					);
+
+					auto itemMsg = db.DirectQuery(
+						"INSERT INTO srv1_player.festival_chest_claim_items "
+						"("
+							"claim_id, roll_index, item_vnum, item_count"
+						") VALUES (%u, %u, %u, %u)",
+						claimID,
+						rollIndex,
+						selectedReward->vnum,
+						itemCount
+					);
+
+					if (!itemMsg ||
+						itemMsg->uiSQLErrno != 0 ||
+						!itemMsg->Get() ||
+						itemMsg->Get()->uiAffectedRows != 1)
+					{
+						db.DirectQuery("ROLLBACK");
+
+						sys_err(
+							"Festival: falha ao persistir item do resgate %u",
+							claimID
+						);
+
+						return false;
+					}
+				}
+
+				sys_log(
+					0,
+					"Festival: resgate preparado. Player %u Guild %u "
+					"Sequence %u Chest %u Claim %u",
+					playerID,
+					guildID,
+					sequenceNo,
+					chest.chestIndex,
+					claimID
+				);
+			}
+		}
+
+		// ---------------------------------------------------------
+		// 6. Confirma toda a operacao.
+		// ---------------------------------------------------------
+
+		auto commitMsg = db.DirectQuery("COMMIT");
+
+		if (!commitMsg || commitMsg->uiSQLErrno != 0)
+		{
+			db.DirectQuery("ROLLBACK");
+			sys_err("Festival: falha ao confirmar resgates do jogador %u", playerID);
+			return false;
+		}
+
+		return true;
 	}
 
 }
