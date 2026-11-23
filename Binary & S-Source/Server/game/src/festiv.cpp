@@ -311,12 +311,37 @@ namespace
 		return true;
 	}
 
-	void SendMissionPacket(LPDESC d, const std::vector<TMission>& missions)
+	
+	void SendMissionPacket(
+		LPDESC d,
+		const std::vector<TMission>& missions,
+		BYTE status)
 	{
-		if (!d || missions.empty())
+		if (!d)
 			return;
 
+		if (status != FESTIVAL_LIST_ACTIVE &&
+			status != FESTIVAL_LIST_UNAVAILABLE)
+		{
+			sys_err("Festival: status invalido para lista de missoes: %u",
+				status);
+			return;
+		}
+
+		if (missions.size() > 5)
+		{
+			sys_err("Festival: quantidade de missoes excede o limite");
+			return;
+		}
+
+		if (status == FESTIVAL_LIST_UNAVAILABLE && !missions.empty())
+		{
+			sys_err("Festival: lista indisponivel recebeu missoes");
+			return;
+		}
+
 		TPacketGCFestivalMissionList payload = {};
+		payload.status = status;
 		payload.count = static_cast<WORD>(missions.size());
 
 		const size_t totalSize =
@@ -347,16 +372,22 @@ namespace
 		for (size_t i = 0; i < missions.size(); ++i)
 		{
 			const TMission& source = missions[i];
+
 			TFestivalMissionPacket entry = {};
 			entry.id = static_cast<DWORD>(source.id);
-			strncpy(entry.title, source.title.c_str(), sizeof(entry.title) - 1);
-			strncpy(entry.description, source.description.c_str(), sizeof(entry.description) - 1);
+
+			strncpy(entry.title, source.title.c_str(),
+				sizeof(entry.title) - 1);
+
+			strncpy(entry.description, source.description.c_str(),
+				sizeof(entry.description) - 1);
+
 			entry.points = static_cast<DWORD>(source.points);
 			entry.type = source.type;
 			entry.target_vnum = static_cast<DWORD>(source.target_vnum);
 			entry.target_count = static_cast<DWORD>(source.target_count);
 			entry.time_limit = static_cast<DWORD>(source.time_limit);
-		entry.status = source.status;
+			entry.status = source.status;
 
 			memcpy(buffer.data() + offset, &entry, sizeof(entry));
 			offset += sizeof(entry);
@@ -372,6 +403,7 @@ namespace
 
 		d->Packet(buffer.data(), buffer.size());
 	}
+
 }
 
 
@@ -388,7 +420,7 @@ bool ClearEvent()
     auto pvpMsg = db.DirectQuery(
         "DELETE FROM srv1_player.festival_pvp_history "
         "WHERE event_id = %u",
-        FESTIVAL_EVENT_ID
+        Festival::FESTIVAL_EVENT_ID
     );
 
     if (!pvpMsg || pvpMsg->uiSQLErrno != 0 || !pvpMsg->Get())
@@ -401,7 +433,7 @@ bool ClearEvent()
     auto playerStateMsg = db.DirectQuery(
         "DELETE FROM srv1_player.festival_player_state "
         "WHERE event_id = %u",
-        FESTIVAL_EVENT_ID
+        Festival::FESTIVAL_EVENT_ID
     );
 
     if (!playerStateMsg ||
@@ -429,8 +461,8 @@ bool ClearEvent()
             "WHERE id = %u"
         ") "
         "WHERE event_id = %u",
-        FESTIVAL_EVENT_ID,
-        FESTIVAL_EVENT_ID
+        Festival::FESTIVAL_EVENT_ID,
+        Festival::FESTIVAL_EVENT_ID
     );
 
     if (!guildResetMsg ||
@@ -445,7 +477,7 @@ bool ClearEvent()
     auto missionResetMsg = db.DirectQuery(
         "DELETE FROM srv1_player.festival_guild_mission "
         "WHERE event_id = %u",
-        FESTIVAL_EVENT_ID
+        Festival::FESTIVAL_EVENT_ID
     );
 
     if (!missionResetMsg ||
@@ -544,13 +576,6 @@ bool FinalizeFestivalEvent()
 
     DWORD guildCount = 0;
     str_to_number(guildCount, guildCountRow[0]);
-
-    if (guildCount == 0)
-    {
-        db.DirectQuery("ROLLBACK");
-        sys_err("Festival: nenhuma guilda encontrada para arquivamento");
-        return false;
-    }
 
     // 4. Falha as missoes ainda pendentes.
     auto missionMsg = db.DirectQuery(
@@ -1410,23 +1435,90 @@ namespace Festival
 		return true;
 	}
 	
+	
 	void SendMission(LPCHARACTER ch)
 	{
 		if (!ch)
 			return;
 
 		LPDESC d = ch->GetDesc();
+
 		if (!d)
 			return;
 
+		// 1. Consultar o estado atual do evento.
+		auto eventMsg = DBManager::instance().DirectQuery(
+			"SELECT status "
+			"FROM srv1_player.festival_event "
+			"WHERE id = %u "
+			"LIMIT 1",
+			FESTIVAL_EVENT_ID
+		);
+
+		SQLResult* eventResult = GetSelectResult(
+			eventMsg,
+			"consultar estado do evento para lista"
+		);
+
+		if (!eventResult)
+			return;
+
+		MYSQL_ROW eventRow = mysql_fetch_row(eventResult->pSQLResult);
+
+		// Registro inexistente: evento indisponivel.
+		if (!eventRow || !eventRow[0])
+		{
+			std::vector<TMission> emptyMissions;
+
+			SendMissionPacket(
+				d,
+				emptyMissions,
+				FESTIVAL_LIST_UNAVAILABLE
+			);
+
+			return;
+		}
+
+		// 2. Somente ACTIVE permite carregar missoes.
+		if (strcmp(eventRow[0], "ACTIVE") != 0)
+		{
+			sys_log(0,
+				"Festival: lista indisponivel. Estado atual: %s",
+				eventRow[0]);
+
+			std::vector<TMission> emptyMissions;
+
+			SendMissionPacket(
+				d,
+				emptyMissions,
+				FESTIVAL_LIST_UNAVAILABLE
+			);
+
+			return;
+		}
+
+		// 3. Verificar se o personagem pertence a uma guilda.
 		CGuild* guild = ch->GetGuild();
+
 		if (!guild)
 		{
-			sys_log(0, "Festival: personagem sem guilda solicitou missoes");
+			sys_log(0,
+				"Festival: personagem sem guilda solicitou missoes");
+
+			std::vector<TMission> emptyMissions;
+
+			SendMissionPacket(
+				d,
+				emptyMissions,
+				FESTIVAL_LIST_ACTIVE
+			);
+
 			return;
 		}
 
 		const DWORD guildID = guild->GetID();
+
+		// 4. Carregar missoes do ciclo atual.
 		auto pmsg = DBManager::instance().DirectQuery(
 			"SELECT mission.template_id, template.title, template.description, "
 			"mission.points, template.type, template.target_vnum, "
@@ -1452,43 +1544,53 @@ namespace Festival
 			FESTIVAL_EVENT_ID
 		);
 
-		SQLResult* pResult = GetSelectResult(pmsg, "carregar missoes da guilda");
+		SQLResult* pResult = GetSelectResult(
+			pmsg,
+			"carregar missoes da guilda"
+		);
+
 		if (!pResult)
 			return;
 
 		std::vector<TMission> missions;
+
 		MYSQL_ROW row = NULL;
+
 		while ((row = mysql_fetch_row(pResult->pSQLResult)))
 		{
 			TMission mission;
+
 			if (!ParseMissionRow(row, mission) || !row[8])
 			{
-				sys_err("Festival: atribuicao invalida ignorada para guilda %u", guildID);
+				sys_err(
+					"Festival: atribuicao invalida ignorada para guilda %u",
+					guildID
+				);
 				continue;
 			}
 
 			str_to_number(mission.status, row[8]);
+
 			if (mission.status > FEST_MISSION_FAILED)
 			{
-				sys_err("Festival: status de missao invalido ignorado para guilda %u", guildID);
+				sys_err(
+					"Festival: status de missao invalido ignorado para guilda %u",
+					guildID
+				);
 				continue;
 			}
 
 			missions.push_back(mission);
 		}
 
-		if (missions.empty())
-		{
-			sys_log(0,
-				"Festival: nenhuma missao persistida para guilda %u no evento %u",
-				guildID,
-				FESTIVAL_EVENT_ID);
-			return;
-		}
-
-		SendMissionPacket(d, missions);
+		// 5. Enviar ACTIVE mesmo quando nao houver missoes.
+		SendMissionPacket(
+			d,
+			missions,
+			FESTIVAL_LIST_ACTIVE
+		);
 	}
-	
+
 	
 	bool StartEvent(DWORD cycleDurationMinutes)
 	{

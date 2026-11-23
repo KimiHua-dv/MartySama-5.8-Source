@@ -26,7 +26,7 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 Confirmado: todas as seis tabelas consultadas utilizam InnoDB.
 -Proposta: abertura transacional, validação do histórico anterior, reset de next_renewal_at e correções no encerramento.
 Em andamento: tornar StartEvent() atômica e implementar o protocolo explícito de disponibilidade da lista, incluindo integração com a interface Python.
-- Pendente: concluir protocolo da lista, parser C++ e integração Python; finalizar resgate dos baús. Painel histórico permanece como funcionalidade futura.
+Protocolo da lista (FESTIVAL_LIST_ACTIVE/UNAVAILABLE): integração realizada; mensagem de indisponibilidade visualizada no cliente.
 
 ### Sistema de reinos
 - (preencher status)
@@ -36,8 +36,6 @@ Em andamento: tornar StartEvent() atômica e implementar o protocolo explícito 
 
 ## 3. Pendências globais (ordem de prioridade)
 
--Tornar StartEvent() atômica, validar arquivamento histórico e confirmar InnoDB nas tabelas envolvidas.
--Implementar o protocolo FESTIVAL_LIST_ACTIVE/UNAVAILABLE no servidor e cliente, incluindo a ponte Python.
 -Finalizar o resgate dos baús.
 
 ## 4. Problemas conhecidos / armadilhas

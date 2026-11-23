@@ -2405,6 +2405,12 @@ class GameWindow(ui.ScriptWindow):
 		if self.Festival:
 			self.Festival.ClearFestivalMissions()
 
+
+	def SetFestivalListStatus(self, status):
+		if self.Festival:
+			self.Festival.SetFestivalListStatus(status)
+
+
 	def AppendFestivalMission(self, mission_id, title, description, points, mission_type, target_vnum, target_count, time_limit, status):
 		if self.Festival:
 			self.Festival.AppendFestivalMission(mission_id, title, description, points, mission_type, target_vnum, target_count, time_limit, status)

@@ -1,5 +1,8 @@
 import ui, chat, guild, net
 
+FESTIVAL_LIST_ACTIVE = 0
+FESTIVAL_LIST_UNAVAILABLE = 1
+
 class Festival(ui.ScriptWindow):
 	def __init__(self):
 		ui.ScriptWindow.__init__(self)
@@ -11,6 +14,7 @@ class Festival(ui.ScriptWindow):
 		self.PendingPoints = 0
 		self.ClaimedChests = 0
 		self.maxFestivalPoints = 2000
+		self.listStatus = FESTIVAL_LIST_ACTIVE
 
 		self.LoadWindow()
 
@@ -29,12 +33,39 @@ class Festival(ui.ScriptWindow):
 		self.painel_progresso = self.GetChild("painel_lateral_d_1")
 		self.painel_MM = self.GetChild("painel_lateral_d_3")
 		self.painel_reconpensa = self.GetChild("painel_central_baixo")
+		self.statusMessages = []
+
+		messages = [
+			"Festival de Guildas encerrado",
+			"ou não está em execução.",
+			"Aguarde a próxima edição do evento."
+		]
+
+		for index, message in enumerate(messages):
+			panelWidth = 372
+			textLine = ui.TextLine()
+			textLine.SetParent(self.painel_missoes)
+			textLine.SetPosition(12, 140 + index * 20)
+			textLine.SetPosition(panelWidth / 2, 140 + index * 20)
+			textLine.SetHorizontalAlignCenter()
+			textLine.SetText(message)
+			textLine.Hide()
+
+			self.statusMessages.append(textLine)
 		
 		self.RefreshGuildInfos()
 		self.CreateGuildGauge()
 		self.CreateMissionGauge()
 		self.CreateRewardGauge()
 
+	def SetFestivalListStatus(self, status):
+		self.listStatus = int(status)
+
+		# Limpar missoes antigas ao receber qualquer novo estado.
+		self.missions = []
+
+		self.RefreshMissionList()
+	
 	def Open(self):
 		self.Show()
 
@@ -102,7 +133,19 @@ class Festival(ui.ScriptWindow):
 			item.Hide()
 
 		self.missionItems = []
+		
+		# Ocultar mensagens anteriores.
+		for message in self.statusMessages:
+			message.Hide()
 
+		# Evento encerrado ou em processamento.
+		if self.listStatus == FESTIVAL_LIST_UNAVAILABLE:
+			for message in self.statusMessages:
+				message.Show()
+
+			return
+
+		# Evento ativo, mas sem missoes.
 		if not self.missions:
 			return
 
@@ -281,8 +324,8 @@ class Festival(ui.ScriptWindow):
 		self.UpdateMileStone()
 		
 	def AddTestPoints(self, amount):
-		self.TotalPoints += amount
-		self.TotalPoints = min(self.TotalPoints, self.maxFestivalPoints)
+		self.RewardProgress += amount
+		self.RewardProgress = min(self.RewardProgress, self.maxFestivalPoints)
 		self.UpdateRewardGauge()
 		self.UpdateMileStone()
 		self.RefreshGuildProgress()
@@ -292,16 +335,24 @@ class Festival(ui.ScriptWindow):
 		 self.RewardGauge.SetPercentage(self.RewardProgress,self.maxFestivalPoints)
 		
 	def UpdateMileStone(self):
-		if self.RewardProgress >= 200:
-			self.rec_1.LoadImage("festival/rec_1_1.tga")
-		if self.RewardProgress >= 500:
-			self.rec_2.LoadImage("festival/rec_2_1.tga")
-		if self.RewardProgress >= 1000:
-			self.rec_3.LoadImage("festival/rec_3_1.tga")
-		if self.RewardProgress >= 1500:
-			self.rec_4.LoadImage("festival/rec_4_1.tga")
-		if self.RewardProgress >= 2000:
-			self.rec_5.LoadImage("festival/rec_5_1.tga")
+		milestones = [
+			(200, self.rec_1, 1),
+			(500, self.rec_2, 2),
+			(1000, self.rec_3, 4),
+			(1500, self.rec_4, 8),
+			(2000, self.rec_5, 16)
+		]
+
+		for index, (points, image, chestBit) in enumerate(milestones):
+			if self.RewardProgress >= points:
+				image.LoadImage(
+					"festival/rec_%d_1.tga" % (index + 1)
+				)
+
+			if self.ClaimedChests & chestBit:
+				self.chestStatus[index].SetText("OK")
+			else:
+				self.chestStatus[index].SetText("")
 			
 	def SetMilestone(self):
 		self.rec_1 = ui.ExpandedImageBox()
@@ -363,4 +414,19 @@ class Festival(ui.ScriptWindow):
 		self.textrec_5.SetPosition(343, 60)
 		self.textrec_5.SetText("2000")
 		self.textrec_5.Show()
+		
+		self.chestStatus = []
+
+		chestPositions = [58, 111, 192, 272, 343]
+
+		for x in chestPositions:
+			status = ui.TextLine()
+			status.SetParent(self.painel_reconpensa)
+			status.SetPosition(x, 75)
+			status.SetText("")
+			status.Show()
+
+			self.chestStatus.append(status)
+
+		self.UpdateMileStone()
 		
