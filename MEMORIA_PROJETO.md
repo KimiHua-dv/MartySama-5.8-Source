@@ -26,8 +26,7 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 - Concluído: FinalizeFestivalEvent() implementada e integrada aos três caminhos de encerramento, conforme auditoria da source.
 Confirmado: todas as seis tabelas consultadas utilizam InnoDB.
 -Proposta: abertura transacional, validação do histórico anterior, reset de next_renewal_at e correções no encerramento.
-Em andamento: tornar StartEvent() atômica e implementar o protocolo explícito de disponibilidade da lista, incluindo integração com a interface Python.
-Protocolo da lista (FESTIVAL_LIST_ACTIVE/UNAVAILABLE): integração realizada; mensagem de indisponibilidade visualizada no cliente.
+Em andamento: ## 3. Pendências globais
 
 ### Sistema de reinos
 - (preencher status)

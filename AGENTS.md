@@ -165,8 +165,8 @@ Concluído: encerramento do evento e interface com mensagem de evento encerrado
 
 Ordem de trabalho (não começar por funcionalidades novas):
 
-1-Atualizar o banco para suportar sequências e resgates individuais em lote.
-2-Implementar o cálculo de recompensas pendentes e o sorteio persistente.
+1-Atualizar o banco para suportar sequências e resgates individuais em lote.(feito)
+2-Implementar o cálculo de recompensas pendentes e o sorteio persistente.(feito)
 3-Implementar entrega segura, inclusive quando o inventário estiver cheio.
 4-Criar o protocolo cliente-servidor para solicitar o resgate em lote.
 5-Atualizar o indicador numérico do baú superior e o estado visual após o resgate.
