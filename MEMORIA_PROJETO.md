@@ -35,8 +35,12 @@ Protocolo da lista (FESTIVAL_LIST_ACTIVE/UNAVAILABLE): integração realizada; m
 - (preencher status)
 
 ## 3. Pendências globais (ordem de prioridade)
-
--Finalizar o resgate dos baús.
+1-Atualizar o banco para suportar sequências e resgates individuais em lote.
+2-Implementar o cálculo de recompensas pendentes e o sorteio persistente.
+3-Implementar entrega segura, inclusive quando o inventário estiver cheio.
+4-Criar o protocolo cliente-servidor para solicitar o resgate em lote.
+5-Atualizar o indicador numérico do baú superior e o estado visual após o resgate.
+6-Finalizar o resgate dos baús.
 
 ## 4. Problemas conhecidos / armadilhas
 
