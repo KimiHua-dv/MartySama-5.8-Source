@@ -3,6 +3,11 @@
 Instruções para agentes de código (Codex, etc.) neste repositório.
 Leia este arquivo inteiro antes de qualquer tarefa.
 
+Nenhuma resposta de desenvolvimento deve terminar somente com pesquisa, análise ou planejamento. 
+O objetivo de cada etapa é entregar código concreto, baseado na source real da MartySama 5.8, 
+para inserção e compilação na VM FreeBSD. Pesquise o necessário, implemente o próximo conjunto funcional
+e só interrompa a entrega quando existir um bloqueio técnico comprovado.
+
 ## 0. Memória do projeto
 
 - No início de cada tarefa, leia `MEMORIA_PROJETO.md` (decisões firmes, status e pendências).
@@ -166,3 +171,103 @@ Ordem de trabalho (não começar por funcionalidades novas):
 4-Criar o protocolo cliente-servidor para solicitar o resgate em lote.
 5-Atualizar o indicador numérico do baú superior e o estado visual após o resgate.
 6-Finalizar o resgate dos baús.
+
+## REGRA OBRIGATÓRIA — ENTREGA DE CÓDIGO EM TODA ETAPA DE DESENVOLVIMENTO
+
+### 1. Princípio fundamental
+
+Toda resposta que envolva desenvolvimento, correção, implementação ou evolução de sistemas da MartySama 5.8 deve produzir código concreto para ser inserido nos arquivos da source e submetido à compilação na VM FreeBSD.
+
+**Pesquisar não é o resultado da tarefa. O resultado esperado é código implementado, acompanhado das instruções necessárias para compilar e testar.**
+
+Não encerrar uma resposta apenas com:
+- Análise da arquitetura.
+- Explicação de como o sistema deveria funcionar.
+- Lista de dependências a investigar.
+- Proposta de implementação para uma próxima etapa.
+- Promessa de que o código será desenvolvido posteriormente.
+
+### 2. Pesquisa e implementação na mesma etapa
+
+Antes de escrever código:
+1. Consultar o repositório oficial MartySama 5.8.
+2. Ler as implementações reais relacionadas ao problema.
+3. Verificar declarações, definições, chamadas e dependências.
+4. Identificar os mecanismos nativos que podem ser reutilizados.
+5. Escolher a solução tecnicamente mais adequada.
+
+Depois da pesquisa, implementar imediatamente o próximo conjunto funcional de alterações.
+
+Não realizar pesquisas sucessivas sem transformar os resultados em código.
+
+### 3. Entrega obrigatória de código
+
+Toda resposta de desenvolvimento deve conter, sempre que tecnicamente possível:
+
+- Caminho exato do arquivo.
+- Nome da função, classe ou estrutura que será alterada.
+- Ponto de inserção ou substituição.
+- Código completo do trecho necessário, sem pseudocódigo.
+- Includes, declarações e dependências necessárias.
+- SQL separado, quando necessário.
+- Alterações de protocolo nos dois lados, quando aplicável.
+- Comandos de compilação compatíveis com FreeBSD 14.4.
+
+Não utilizar expressões como "adicione a lógica aqui", "implemente o restante" ou "siga este exemplo" no lugar do código necessário.
+
+Quando uma alteração depender de outra, entregar o conjunto coerente de arquivos e mudanças, não apenas uma função isolada que não possa ser integrada.
+
+### 4. Proibição de pesquisa sem entrega
+
+Cada etapa de investigação deve terminar com pelo menos um dos seguintes resultados:
+
+**A. Implementação entregue:** código concreto, pronto para ser inserido na source e submetido à compilação.
+
+**B. Bloqueio técnico comprovado:** informar exatamente qual dependência impede a implementação, apresentar as evidências encontradas na source e entregar todas as alterações independentes que já podem ser feitas com segurança.
+
+O bloqueio deve ser específico e verificável. Não utilizar "precisamos pesquisar mais" como justificativa genérica para não entregar código.
+
+A investigação deve continuar até eliminar o bloqueio, sem transformar a tarefa em uma sequência indefinida de análises.
+
+### 5. Critério de compilação
+
+O código deve ser escrito considerando a versão real da MartySama 5.8, e não exemplos genéricos de outras sources.
+
+Distinguir obrigatoriamente:
+
+- **Verificado na source:** mecanismo, função ou dependência encontrada no GitHub.
+- **Código entregue:** alterações concretas propostas para os arquivos.
+- **Compilação:** ainda não realizada ou resultado efetivamente obtido.
+- **Testes:** ainda não realizados ou resultados efetivamente obtidos.
+
+Nunca afirmar que o código compila sem executar a compilação.
+
+O objetivo é entregar código com estrutura e dependências suficientes para que o usuário possa inseri-lo na VM e compilar. Se houver erro, corrigir com base nos logs apresentados.
+
+### 6. Desenvolvimento incremental
+
+Dividir sistemas grandes em etapas funcionais e compiláveis.
+
+Cada etapa deve:
+1. Ter um objetivo técnico delimitado.
+2. Entregar código concreto.
+3. Identificar todos os arquivos envolvidos.
+4. Informar comandos de compilação.
+5. Definir testes objetivos.
+6. Registrar o que permanece pendente.
+
+Não esperar a conclusão de todo o sistema para começar a entregar código.
+
+### 7. Regra de encerramento da resposta
+
+Antes de encerrar qualquer resposta de desenvolvimento, verificar:
+
+- Entreguei código concreto?
+- Identifiquei os arquivos e os pontos de alteração?
+- Incluí as dependências necessárias?
+- Informei como compilar na VM FreeBSD?
+- Separei o que foi verificado do que ainda precisa ser testado?
+
+Se não houver código, justificar com um bloqueio técnico específico e comprovado.
+
+**Regra prioritária: o usuário não quer apenas aprender como implementar. Ele espera receber as alterações concretas para inserir na VM, compilar, testar e trazer os resultados para a próxima etapa.**
