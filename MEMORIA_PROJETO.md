@@ -17,6 +17,7 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 - Sistema de reinos: todos começam neutros; máximo de 3 reinos por jogador; imperador é quem derrota o Boss do reino sozinho.
 - Código: a source da VM FreeBSD 14.4 está alinhada com o repositório GitHub MartySama-5.8-Source. As análises já realizadas no GitHub podem ser utilizadas como referência para continuar o desenvolvimento, sem solicitar novamente os mesmos arquivos. Se houver divergência ou atualização posterior, verificar o commit antes de prosseguir.
 - Fluxo de desenvolvimento no ChatGPT: trabalhar normalmente no chat, sem exigir Work mode nem solicitar novamente arquivos já analisados. Consultar o GitHub diretamente para novas verificações e reutilizar os levantamentos anteriores enquanto forem compatíveis com a source. Entregar alterações como código sugerido, indicando arquivo, função, ponto de inserção, trecho a substituir e dependências. A aplicação, compilação e testes são realizados pelo usuário na VM FreeBSD; nunca afirmar que foram executados sem confirmação.
+- As pesquisas serão feitas todas de uma só vez e seguida do codigo sugerido para compilação e um novo teste, sempre que houver duvida sugira a mudança caso ela ja tenha aconteciso antes eu não a farei.
 
 ## 2. Status por sistema
 
@@ -35,8 +36,8 @@ Protocolo da lista (FESTIVAL_LIST_ACTIVE/UNAVAILABLE): integração realizada; m
 - (preencher status)
 
 ## 3. Pendências globais (ordem de prioridade)
-1-Atualizar o banco para suportar sequências e resgates individuais em lote.
-2-Implementar o cálculo de recompensas pendentes e o sorteio persistente.
+1-Atualizar o banco para suportar sequências e resgates individuais em lote.(feito)
+2-Implementar o cálculo de recompensas pendentes e o sorteio persistente.(feito)
 3-Implementar entrega segura, inclusive quando o inventário estiver cheio.
 4-Criar o protocolo cliente-servidor para solicitar o resgate em lote.
 5-Atualizar o indicador numérico do baú superior e o estado visual após o resgate.
