@@ -67,7 +67,7 @@ CREATE TABLE `festival_guild_mission` (
   KEY `idx_event_guild` (`event_id`,`guild_id`),
   KEY `idx_expiration` (`status`,`expires_at`),
   KEY `idx_template` (`template_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=611 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=621 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -164,6 +164,46 @@ CREATE TABLE `festival_guild_history` (
   UNIQUE KEY `uq_edition_guild` (`edition_key`,`guild_id`),
   KEY `idx_edition_points` (`edition_key`,`total_points`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `festival_chest_claims` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `event_id` int(10) unsigned NOT NULL,
+  `edition_key` datetime NOT NULL,
+  `guild_id` int(10) unsigned NOT NULL,
+  `player_id` int(10) unsigned NOT NULL,
+  `sequence_no` int(10) unsigned NOT NULL,
+  `chest_id` int(10) unsigned NOT NULL,
+  `chest_index` tinyint(3) unsigned NOT NULL,
+  `status` enum('PENDING','DELIVERED') NOT NULL DEFAULT 'PENDING',
+  `claimed_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `delivered_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_player_chest_claim` (`event_id`,`edition_key`,`guild_id`,`player_id`,`sequence_no`,`chest_index`),
+  KEY `idx_claim_player_status` (`player_id`,`status`,`edition_key`),
+  KEY `idx_claim_guild` (`event_id`,`guild_id`,`edition_key`)
+) ENGINE=InnoDB AUTO_INCREMENT=47 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `festival_chest_claims` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `event_id` int(10) unsigned NOT NULL,
+  `edition_key` datetime NOT NULL,
+  `guild_id` int(10) unsigned NOT NULL,
+  `player_id` int(10) unsigned NOT NULL,
+  `sequence_no` int(10) unsigned NOT NULL,
+  `chest_id` int(10) unsigned NOT NULL,
+  `chest_index` tinyint(3) unsigned NOT NULL,
+  `status` enum('PENDING','DELIVERED') NOT NULL DEFAULT 'PENDING',
+  `claimed_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `delivered_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_player_chest_claim` (`event_id`,`edition_key`,`guild_id`,`player_id`,`sequence_no`,`chest_index`),
+  KEY `idx_claim_player_status` (`player_id`,`status`,`edition_key`),
+  KEY `idx_claim_guild` (`event_id`,`guild_id`,`edition_key`)
+) ENGINE=InnoDB AUTO_INCREMENT=47 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

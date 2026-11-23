@@ -102,7 +102,7 @@ Marcos: 200 / 500 / 1.000 / 1.500 / 2.000 pontos. Campos: `total_points`, `rewar
 
 `festival_guild_history`: `UNIQUE(edition_key, guild_id)`; `edition_key` = `started_at` da edição; todas as guildas de `festival_guild_state` são arquivadas, inclusive com 0 pontos.
 
-### Encerramento (prioridade máxima)
+### Encerramento
 
 Existem 3 caminhos em `festiv.cpp`: (1) manual `CloseEvent()`, (2) automático em `ACTIVE` quando `ends_at` expira, (3) automático em `PROCESSING` quando o prazo total termina durante a transição de ciclo.
 
@@ -161,7 +161,7 @@ Mensagem: "Festival de Guildas encerrado ou não está em execução." (compleme
 
 Conferir: `SendMissionPacket()`, `SendMission()`, `SendOpen()` em `festiv.cpp`; parser de `HEADER_GC_FESTIVAL` no cliente C++; função Python que cria os elementos visuais da lista.
 
-### Estado e ordem de trabalho
+### Estado e ordem de trabalho (prioridade máxima)
 
 Concluído: encerramento do evento e interface com mensagem de evento encerrado
 
