@@ -156,14 +156,13 @@ Conferir: `SendMissionPacket()`, `SendMission()`, `SendOpen()` em `festiv.cpp`; 
 
 ### Estado e ordem de trabalho
 
-Concluído: distribuição de missões, hooks, progresso individual, expiração, pontuação coletiva, estrutura inicial dos marcos, comando GM, `ProcessCycle()`, tabela `festival_guild_history`, encerramento manual testado.
+Concluído: encerramento do evento e interface com mensagem de evento encerrado
 
 Ordem de trabalho (não começar por funcionalidades novas):
 
-1. Revisar `FinalizeFestivalEvent()`.
-2. Integrar os 3 caminhos de encerramento.
-3. Revisar `StartEvent()` (limpeza só após edição anterior encerrada e arquivada).
-4. Remover reset desnecessário de `cycle_id` no encerramento e o reset de `AUTO_INCREMENT` em `festival_guild_mission`.
-5. Protocolo da lista (`status` + `count`) no servidor, parser C++ e interface Python do cliente.
-6. Testar: encerramento manual, automático e recuperação durante `PROCESSING`; abrir nova edição e garantir que o histórico permaneça intacto.
-7. Finalizar o sistema de resgate dos baús (lógica, persistência, entrega).
+1-Atualizar o banco para suportar sequências e resgates individuais em lote.
+2-Implementar o cálculo de recompensas pendentes e o sorteio persistente.
+3-Implementar entrega segura, inclusive quando o inventário estiver cheio.
+4-Criar o protocolo cliente-servidor para solicitar o resgate em lote.
+5-Atualizar o indicador numérico do baú superior e o estado visual após o resgate.
+6-Finalizar o resgate dos baús.
