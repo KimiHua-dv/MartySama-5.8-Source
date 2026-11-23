@@ -116,7 +116,9 @@ Todos devem chamar uma função central `FinalizeFestivalEvent()`:
 6. Atualizar o evento para `CLOSED`.
 7. Confirmar a transação (rollback em falha).
 
-> `FinalizeFestivalEvent()` foi proposta mas **ainda não foi aplicada nem validada em compilação**. Revisar antes de usar.
+> `FinalizeFestivalEvent()` foi finalizado.
+
+proxima etapa validar entrega das recompensas.
 
 ### Preservação de dados
 

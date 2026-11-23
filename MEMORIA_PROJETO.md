@@ -22,10 +22,7 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 ## 2. Status por sistema
 
 ### Festival de Guildas
-- Pronto: distribuição de missões, hooks (Metin, monstro, PvP, coleta), progresso individual, expiração, pontuação coletiva, comando GM, `ProcessCycle()`, tabela de histórico, encerramento manual testado.
-- Concluído: FinalizeFestivalEvent() implementada e integrada aos três caminhos de encerramento, conforme auditoria da source.
-Confirmado: todas as seis tabelas consultadas utilizam InnoDB.
--Proposta: abertura transacional, validação do histórico anterior, reset de next_renewal_at e correções no encerramento.
+
 Em andamento: ## 3. Pendências globais
 
 ### Sistema de reinos
