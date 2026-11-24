@@ -121,13 +121,21 @@ typedef struct SFestivalMissionPacket
 #pragma pack(pop)
 
 #pragma pack(push, 1)
+#pragma pack(push, 1)
 typedef struct SFestivalGuildStatePacket
 {
     DWORD total_points;
     DWORD reward_progress;
     DWORD pending_points;
     BYTE claimed_chests;
+
+    DWORD pending_chest_200;
+    DWORD pending_chest_500;
+    DWORD pending_chest_1000;
+    DWORD pending_chest_1500;
+    DWORD pending_chest_2000;
 } TPacketGCFestivalGuildState;
+#pragma pack(pop)
 #pragma pack(pop)
 
 #endif

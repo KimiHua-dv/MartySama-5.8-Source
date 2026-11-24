@@ -2829,48 +2829,56 @@ namespace Festival
 		return true;
 	}
 
+	
 	void SendGuildState(LPCHARACTER ch)
 	{
 		if (!ch)
 			return;
 
 		LPDESC d = ch->GetDesc();
-		if (!d)
+
+		if (!d || !ch->GetGuild())
 			return;
 
-		if (!ch->GetGuild())
+		const DWORD guildID = ch->GetGuild()->GetID();
+		const DWORD playerID = ch->GetPlayerID();
+
+		if (guildID == 0 || playerID == 0)
 			return;
 
-		DWORD guildID = ch->GetGuild()->GetID();
-
-		if (guildID == 0)
-			return;
-		
+		// Garante que os claims elegiveis estejam preparados.
 		if (!PreparePlayerChestClaims(ch))
 		{
 			sys_err(
 				"Festival: nao foi possivel preparar recompensas do jogador %u",
-				ch->GetPlayerID()
+				playerID
 			);
-		}
-
-		auto pmsg = DBManager::instance().DirectQuery(
-			"SELECT total_points, reward_progress, pending_points, claimed_chests "
-			"FROM srv1_player.festival_guild_state "
-			"WHERE event_id = %u AND guild_id = %u",
-			FESTIVAL_EVENT_ID, guildID
-		);
-
-		if (!pmsg || pmsg->uiSQLErrno != 0 || !pmsg->Get())
-		{
-			sys_err("Festival: falha ao consultar estado da guilda %u", guildID);
 			return;
 		}
 
-		SQLResult* result = pmsg->Get();
-		MYSQL_ROW row = mysql_fetch_row(result->pSQLResult);
+		// ---------------------------------------------------------
+		// 1. Estado geral da guilda.
+		// ---------------------------------------------------------
 
-		if (!row)
+		auto guildMsg = DBManager::instance().DirectQuery(
+			"SELECT total_points, reward_progress, pending_points, claimed_chests "
+			"FROM srv1_player.festival_guild_state "
+			"WHERE event_id = %u AND guild_id = %u",
+			FESTIVAL_EVENT_ID,
+			guildID
+		);
+
+		SQLResult* guildResult = GetSelectResult(
+			guildMsg,
+			"consultar estado da guilda"
+		);
+
+		if (!guildResult)
+			return;
+
+		MYSQL_ROW guildRow = mysql_fetch_row(guildResult->pSQLResult);
+
+		if (!guildRow)
 		{
 			sys_err("Festival: estado da guilda %u nao encontrado", guildID);
 			return;
@@ -2878,24 +2886,100 @@ namespace Festival
 
 		TPacketGCFestivalGuildState payload = {};
 
-		str_to_number(payload.total_points, row[0]);
-		str_to_number(payload.reward_progress, row[1]);
-		str_to_number(payload.pending_points, row[2]);
-		str_to_number(payload.claimed_chests, row[3]);
+		str_to_number(payload.total_points, guildRow[0]);
+		str_to_number(payload.reward_progress, guildRow[1]);
+		str_to_number(payload.pending_points, guildRow[2]);
+		str_to_number(payload.claimed_chests, guildRow[3]);
+
+		// ---------------------------------------------------------
+		// 2. Quantidade de recompensas pendentes por bau.
+		//
+		// chest_index:
+		// 0 = 200 pontos
+		// 1 = 500 pontos
+		// 2 = 1000 pontos
+		// 3 = 1500 pontos
+		// 4 = 2000 pontos
+		// ---------------------------------------------------------
+
+		auto pendingMsg = DBManager::instance().DirectQuery(
+			"SELECT "
+				"COALESCE(SUM(CASE WHEN chest_index = 1 THEN 1 ELSE 0 END), 0), "
+				"COALESCE(SUM(CASE WHEN chest_index = 2 THEN 1 ELSE 0 END), 0), "
+				"COALESCE(SUM(CASE WHEN chest_index = 3 THEN 1 ELSE 0 END), 0), "
+				"COALESCE(SUM(CASE WHEN chest_index = 4 THEN 1 ELSE 0 END), 0), "
+				"COALESCE(SUM(CASE WHEN chest_index = 5 THEN 1 ELSE 0 END), 0) "
+			"FROM srv1_player.festival_chest_claims "
+			"WHERE event_id = %u "
+			"AND edition_key = ("
+				"SELECT started_at "
+				"FROM srv1_player.festival_event "
+				"WHERE id = %u "
+				"LIMIT 1"
+			") "
+			"AND guild_id = %u "
+			"AND player_id = %u "
+			"AND status = 'PENDING'",
+			FESTIVAL_EVENT_ID,
+			FESTIVAL_EVENT_ID,
+			guildID,
+			playerID
+		);
+
+		SQLResult* pendingResult = GetSelectResult(
+			pendingMsg,
+			"consultar recompensas pendentes por bau"
+		);
+
+		if (!pendingResult)
+			return;
+
+		MYSQL_ROW pendingRow = mysql_fetch_row(
+			pendingResult->pSQLResult
+		);
+
+		if (!pendingRow)
+		{
+			sys_err(
+				"Festival: falha ao recuperar contagem dos baus do jogador %u",
+				playerID
+			);
+			return;
+		}
+
+		str_to_number(payload.pending_chest_200, pendingRow[0]);
+		str_to_number(payload.pending_chest_500, pendingRow[1]);
+		str_to_number(payload.pending_chest_1000, pendingRow[2]);
+		str_to_number(payload.pending_chest_1500, pendingRow[3]);
+		str_to_number(payload.pending_chest_2000, pendingRow[4]);
+
+		// ---------------------------------------------------------
+		// 3. Envia o pacote.
+		// ---------------------------------------------------------
 
 		TPacketGCFestival header = {};
+
 		header.header = HEADER_GC_FESTIVAL;
-		header.size = sizeof(TPacketGCFestival) + sizeof(TPacketGCFestivalGuildState);
+		header.size = sizeof(TPacketGCFestival)
+			+ sizeof(TPacketGCFestivalGuildState);
 		header.subheader = FEST_GC_GUILD_STATE;
 
 		std::vector<char> buffer(header.size);
 
-		memcpy(buffer.data(), &header, sizeof(header));
-		memcpy(buffer.data() + sizeof(header), &payload, sizeof(payload));
+		memcpy(
+			buffer.data(),
+			&header,
+			sizeof(header)
+		);
+
+		memcpy(
+			buffer.data() + sizeof(header),
+			&payload,
+			sizeof(payload)
+		);
 
 		d->Packet(buffer.data(), buffer.size());
 	}
-
 	bool PreparePlayerChestClaims(LPCHARACTER ch)
 	{
 		if (!ch || !ch->GetDesc() || !ch->GetGuild())

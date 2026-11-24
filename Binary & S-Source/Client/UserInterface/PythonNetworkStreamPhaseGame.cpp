@@ -5022,11 +5022,16 @@ bool CPythonNetworkStream::RecvFestivalPacket()
 			m_apoPhaseWnd[PHASE_WINDOW_GAME],
 			"UpdateFestivalGuildState",
 			Py_BuildValue(
-				"(IIII)",
+				"(IIIIIIIII)",
 				static_cast<unsigned int>(guildState.total_points),
 				static_cast<unsigned int>(guildState.reward_progress),
 				static_cast<unsigned int>(guildState.pending_points),
-				static_cast<unsigned int>(guildState.claimed_chests)
+				static_cast<unsigned int>(guildState.claimed_chests),
+				static_cast<unsigned int>(guildState.pending_chest_200),
+				static_cast<unsigned int>(guildState.pending_chest_500),
+				static_cast<unsigned int>(guildState.pending_chest_1000),
+				static_cast<unsigned int>(guildState.pending_chest_1500),
+				static_cast<unsigned int>(guildState.pending_chest_2000)
 			)
 		);
 	}
