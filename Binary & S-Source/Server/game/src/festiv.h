@@ -33,6 +33,7 @@ namespace Festival
 	bool AddGuildPoints(DWORD guildID, DWORD points);
 	void SendGuildState(LPCHARACTER ch);
 	bool PreparePlayerChestClaims(LPCHARACTER ch);
+	bool ClaimPendingChests(LPCHARACTER ch);
 }
 
 enum EFestivalGuildHeader
@@ -46,7 +47,8 @@ enum EFestivalGuildSubHeader
 	FEST_GUILD_OPEN = 0,
 	FEST_GC_MISSION_LIST,
 	FEST_CG_ACCEPT_MISSION,
-	FEST_GC_GUILD_STATE
+	FEST_GC_GUILD_STATE,
+	FEST_CG_CLAIM_PENDING
 };
 
 enum EFestivalMissionListStatus

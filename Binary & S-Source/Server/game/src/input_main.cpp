@@ -927,6 +927,22 @@ int CInputMain::FestivGuild(LPCHARACTER ch, const char* data)
             Festival::SendMission(ch);
         }
         break;
+		
+		case FEST_CG_CLAIM_PENDING:
+		{
+			const bool success = Festival::ClaimPendingChests(ch);
+
+			if (!success)
+			{
+				sys_log(0,
+					"Festival: falha no resgate de baus do jogador %u",
+					ch->GetPlayerID());
+			}
+
+			// Atualiza o estado apresentado pelo cliente.
+			Festival::SendGuildState(ch);
+		}
+		break;
 
         default:
             sys_err("FestivGuild: subheader desconhecido %u",

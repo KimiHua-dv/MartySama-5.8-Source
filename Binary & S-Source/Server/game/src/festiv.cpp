@@ -6,6 +6,10 @@
 #include "festiv.h"
 #include "guild.h"
 #include "questmanager.h"
+#include "item.h"
+#include "item_manager.h"
+#include "config.h"
+#include <cstdlib>
 
 #include <cstdio>
 #include <cstring>
@@ -3321,5 +3325,521 @@ namespace Festival
 
 		return true;
 	}
+
+
+	bool ClaimPendingChests(LPCHARACTER ch)
+	{
+		if (!ch || !ch->GetDesc() || !ch->GetGuild())
+			return false;
+
+		const DWORD playerID = ch->GetPlayerID();
+		const DWORD guildID = ch->GetGuild()->GetID();
+
+		if (playerID == 0 || guildID == 0)
+			return false;
+
+		DBManager& db = DBManager::instance();
+
+		// Garante que todos os resgates elegiveis ja foram preparados.
+		if (!PreparePlayerChestClaims(ch))
+		{
+			sys_err(
+				"Festival: falha ao preparar resgates do jogador %u",
+				playerID
+			);
+			return false;
+		}
+
+		auto transactionMsg = db.DirectQuery("START TRANSACTION");
+
+		if (!transactionMsg || transactionMsg->uiSQLErrno != 0)
+		{
+			sys_err("Festival: falha ao iniciar entrega de recompensas");
+			return false;
+		}
+
+		struct SPendingReward
+		{
+			unsigned long long claimID;
+			unsigned long long claimItemID;
+			DWORD vnum;
+			DWORD count;
+			DWORD existingItemID;
+			LPITEM item;
+		};
+
+		std::vector<SPendingReward> rewards;
+		std::vector<unsigned long long> claimIDs;
+
+		// Objetos criados e adicionados ao inventario nesta tentativa.
+		std::vector<LPITEM> createdItems;
+
+		// Todas as recompensas pertencem a resgates bloqueados
+		// pela transacao ate COMMIT ou ROLLBACK.
+		auto claimMsg = db.DirectQuery(
+			"SELECT "
+				"claim.id, "
+				"claim_item.id, "
+				"claim_item.item_vnum, "
+				"claim_item.item_count, "
+				"claim_item.item_id "
+			"FROM srv1_player.festival_chest_claims AS claim "
+			"INNER JOIN srv1_player.festival_event AS event "
+				"ON event.id = claim.event_id "
+				"AND event.started_at = claim.edition_key "
+			"INNER JOIN srv1_player.festival_chest_claim_items AS claim_item "
+				"ON claim_item.claim_id = claim.id "
+			"WHERE claim.event_id = %u "
+				"AND claim.guild_id = %u "
+				"AND claim.player_id = %u "
+				"AND claim.status IN ('PENDING', 'PROCESSING') "
+			"ORDER BY claim.id, claim_item.roll_index "
+			"FOR UPDATE",
+			FESTIVAL_EVENT_ID,
+			guildID,
+			playerID
+		);
+
+		SQLResult* claimResult = GetSelectResult(
+			claimMsg,
+			"carregar recompensas pendentes"
+		);
+
+		if (!claimResult)
+		{
+			db.DirectQuery("ROLLBACK");
+			return false;
+		}
+
+		MYSQL_ROW row = NULL;
+
+		while ((row = mysql_fetch_row(claimResult->pSQLResult)))
+		{
+			if (!row[0] || !row[1] || !row[2] || !row[3])
+			{
+				db.DirectQuery("ROLLBACK");
+				return false;
+			}
+
+			SPendingReward reward = {};
+
+			reward.claimID = strtoull(row[0], NULL, 10);
+			reward.claimItemID = strtoull(row[1], NULL, 10);
+
+			str_to_number(reward.vnum, row[2]);
+			str_to_number(reward.count, row[3]);
+
+			if (row[4] && row[4][0] != '\0')
+				str_to_number(reward.existingItemID, row[4]);
+
+			reward.item = NULL;
+
+			if (reward.claimID == 0 ||
+				reward.claimItemID == 0 ||
+				reward.vnum == 0 ||
+				reward.count == 0)
+			{
+				db.DirectQuery("ROLLBACK");
+				return false;
+			}
+
+			if (claimIDs.empty() || claimIDs.back() != reward.claimID)
+				claimIDs.push_back(reward.claimID);
+
+			rewards.push_back(reward);
+		}
+
+		// Nada pendente: nao existe trabalho para executar.
+		if (rewards.empty())
+		{
+			auto commitMsg = db.DirectQuery("COMMIT");
+
+			return commitMsg && commitMsg->uiSQLErrno == 0;
+		}
+
+		// Remove os objetos temporarios caso alguma etapa falhe.
+		auto rollbackDelivery = [&]() -> bool
+		{
+			db.DirectQuery("ROLLBACK");
+
+			for (auto it = createdItems.rbegin();
+				 it != createdItems.rend();
+				 ++it)
+			{
+				LPITEM item = *it;
+
+				if (!item)
+					continue;
+
+				item->SetSkipSave(true);
+
+				if (item->GetOwner())
+					item->RemoveFromCharacter();
+
+				M2_DESTROY_ITEM(item);
+			}
+
+			return false;
+		};
+
+		// 1. Verifica recompensas que ja possuem item_id.
+		//
+		// Isso impede criar novamente um item cuja associacao
+		// ja tenha sido persistida anteriormente.
+		for (size_t i = 0; i < rewards.size(); ++i)
+		{
+			SPendingReward& reward = rewards[i];
+
+			if (reward.existingItemID == 0)
+				continue;
+
+			LPITEM existingItem =
+				ITEM_MANAGER::instance().Find(reward.existingItemID);
+
+			if (existingItem)
+			{
+				if (existingItem->GetOwner() != ch ||
+					existingItem->GetOriginalVnum() != reward.vnum ||
+					existingItem->GetCount() != reward.count)
+				{
+					sys_err(
+						"Festival: item_id inconsistente. "
+						"Player %u Claim %llu Item %u",
+						playerID,
+						reward.claimID,
+						reward.existingItemID
+					);
+
+					return rollbackDelivery();
+				}
+
+				continue;
+			}
+
+			// O objeto nao esta carregado no manager.
+			// Confirma sua existencia persistente antes de considerar
+			// a recompensa entregue.
+			auto existingMsg = db.DirectQuery(
+				"SELECT owner_id, vnum, count "
+				"FROM srv1_player.item "
+				"WHERE id = %u LIMIT 1",
+				reward.existingItemID
+			);
+
+			SQLResult* existingResult = GetSelectResult(
+				existingMsg,
+				"verificar item previamente associado"
+			);
+
+			if (!existingResult)
+				return rollbackDelivery();
+
+			MYSQL_ROW existingRow =
+				mysql_fetch_row(existingResult->pSQLResult);
+
+			if (!existingRow ||
+				!existingRow[0] ||
+				!existingRow[1] ||
+				!existingRow[2])
+			{
+				sys_err(
+					"Festival: item associado nao encontrado. "
+					"Claim %llu Item %u",
+					reward.claimID,
+					reward.existingItemID
+				);
+
+				return rollbackDelivery();
+			}
+
+			DWORD ownerID = 0;
+			DWORD vnum = 0;
+			DWORD count = 0;
+
+			str_to_number(ownerID, existingRow[0]);
+			str_to_number(vnum, existingRow[1]);
+			str_to_number(count, existingRow[2]);
+
+			if (ownerID != playerID ||
+				vnum != reward.vnum ||
+				count != reward.count)
+			{
+				sys_err(
+					"Festival: dados do item associado nao conferem. "
+					"Claim %llu Item %u",
+					reward.claimID,
+					reward.existingItemID
+				);
+
+				return rollbackDelivery();
+			}
+		}
+
+		// 2. Cria e adiciona os itens ainda nao entregues.
+		//
+		// O inventario e preenchido sequencialmente. Assim, cada
+		// item ocupa seu espaco antes de procurar o proximo.
+		for (size_t i = 0; i < rewards.size(); ++i)
+		{
+			SPendingReward& reward = rewards[i];
+
+			if (reward.existingItemID != 0)
+				continue;
+
+			// item.count e TINYINT na tabela item.
+			// Tambem respeitamos o limite nativo da source.
+			if (reward.count > g_bItemCountLimit ||
+				reward.count > UCHAR_MAX)
+			{
+				sys_err(
+					"Festival: quantidade de recompensa excede limite. "
+					"Player %u Vnum %u Count %u Limit %u",
+					playerID,
+					reward.vnum,
+					reward.count,
+					g_bItemCountLimit
+				);
+
+				return rollbackDelivery();
+			}
+
+			LPITEM item = ITEM_MANAGER::instance().CreateItem(
+				reward.vnum,
+				reward.count
+			);
+
+			if (!item)
+			{
+				sys_err(
+					"Festival: CreateItem falhou. "
+					"Player %u Vnum %u",
+					playerID,
+					reward.vnum
+				);
+
+				return rollbackDelivery();
+			}
+
+			if (item->GetCount() != reward.count ||
+				item->GetID() == 0)
+			{
+				item->SetSkipSave(true);
+				M2_DESTROY_ITEM(item);
+
+				return rollbackDelivery();
+			}
+
+			// AddToCharacter chama Save().
+			// Impedimos que a gravacao seja enviada ao DB Server
+			// antes da transacao que persiste item + claim.
+			item->SetSkipSave(true);
+
+			const int emptyCell = ch->GetEmptyInventoryEx(item);
+
+			if (emptyCell < 0)
+			{
+				sys_log(
+					0,
+					"Festival: inventario cheio. "
+					"Player %u Claim %llu",
+					playerID,
+					reward.claimID
+				);
+
+				M2_DESTROY_ITEM(item);
+
+				ch->ChatPacket(
+					CHAT_TYPE_INFO,
+					"Festival: libere espaco no inventario para receber as recompensas."
+				);
+
+				return rollbackDelivery();
+			}
+
+			if (!item->AddToCharacter(
+					ch,
+					TItemPos(item->GetWindowInventoryEx(), emptyCell)))
+			{
+				item->SetSkipSave(true);
+				M2_DESTROY_ITEM(item);
+
+				return rollbackDelivery();
+			}
+
+			reward.item = item;
+			createdItems.push_back(item);
+
+			// 3. Persiste o item diretamente na mesma transacao.
+			//
+			// Os campos seguem a serializacao usada por
+			// ITEM_MANAGER::SaveSingleItem().
+			BYTE window = item->GetWindow();
+			WORD position = item->GetCell();
+
+	#ifdef ENABLE_BELT_INVENTORY_EX
+			if (window == INVENTORY &&
+				BELT_INVENTORY_SLOT_START <= position &&
+				BELT_INVENTORY_SLOT_END > position)
+			{
+				window = BELT_INVENTORY;
+				position -= BELT_INVENTORY_SLOT_START;
+			}
+	#endif
+
+			const long* sockets = item->GetSockets();
+
+			const TPlayerItemAttribute* attrs =
+				item->GetAttributes();
+
+			auto saveItemMsg = db.DirectQuery(
+				"INSERT INTO srv1_player.item "
+				"("
+					"id, owner_id, `window`, pos, count, vnum, "
+					"socket0, socket1, socket2, "
+					"attrtype0, attrvalue0, "
+					"attrtype1, attrvalue1, "
+					"attrtype2, attrvalue2, "
+					"attrtype3, attrvalue3, "
+					"attrtype4, attrvalue4, "
+					"attrtype5, attrvalue5, "
+					"attrtype6, attrvalue6"
+				") VALUES "
+				"("
+					"%u, %u, %u, %u, %u, %u, "
+					"%ld, %ld, %ld, "
+					"%u, %d, "
+					"%u, %d, "
+					"%u, %d, "
+					"%u, %d, "
+					"%u, %d, "
+					"%u, %d, "
+					"%u, %d"
+				")",
+				item->GetID(),
+				playerID,
+				static_cast<DWORD>(window),
+				static_cast<DWORD>(position),
+				item->GetCount(),
+				item->GetOriginalVnum(),
+				sockets[0],
+				sockets[1],
+				sockets[2],
+				static_cast<DWORD>(attrs[0].bType), attrs[0].sValue,
+				static_cast<DWORD>(attrs[1].bType), attrs[1].sValue,
+				static_cast<DWORD>(attrs[2].bType), attrs[2].sValue,
+				static_cast<DWORD>(attrs[3].bType), attrs[3].sValue,
+				static_cast<DWORD>(attrs[4].bType), attrs[4].sValue,
+				static_cast<DWORD>(attrs[5].bType), attrs[5].sValue,
+				static_cast<DWORD>(attrs[6].bType), attrs[6].sValue
+			);
+
+			if (!saveItemMsg ||
+				saveItemMsg->uiSQLErrno != 0 ||
+				!saveItemMsg->Get() ||
+				saveItemMsg->Get()->uiAffectedRows != 1)
+			{
+				sys_err(
+					"Festival: falha ao persistir item %u do jogador %u",
+					item->GetID(),
+					playerID
+				);
+
+				return rollbackDelivery();
+			}
+
+			// 4. Associa o ID persistido ao resultado do sorteio.
+			auto associateMsg = db.DirectQuery(
+				"UPDATE srv1_player.festival_chest_claim_items "
+				"SET item_id = %u "
+				"WHERE id = %llu AND item_id IS NULL",
+				item->GetID(),
+				reward.claimItemID
+			);
+
+			if (!associateMsg ||
+				associateMsg->uiSQLErrno != 0 ||
+				!associateMsg->Get() ||
+				associateMsg->Get()->uiAffectedRows != 1)
+			{
+				sys_err(
+					"Festival: falha ao associar item %u ao claim item %llu",
+					item->GetID(),
+					reward.claimItemID
+				);
+
+				return rollbackDelivery();
+			}
+		}
+
+		// 5. Marca cada resgate como entregue.
+		//
+		// A atualizacao ocorre na mesma transacao dos INSERTs
+		// dos itens e das associacoes item_id.
+		for (size_t i = 0; i < claimIDs.size(); ++i)
+		{
+			auto updateMsg = db.DirectQuery(
+				"UPDATE srv1_player.festival_chest_claims "
+				"SET status = 'DELIVERED', delivered_at = NOW() "
+				"WHERE id = %llu "
+				"AND player_id = %u "
+				"AND status IN ('PENDING', 'PROCESSING')",
+				claimIDs[i],
+				playerID
+			);
+
+			if (!updateMsg ||
+				updateMsg->uiSQLErrno != 0 ||
+				!updateMsg->Get() ||
+				updateMsg->Get()->uiAffectedRows != 1)
+			{
+				sys_err(
+					"Festival: falha ao concluir claim %llu do jogador %u",
+					claimIDs[i],
+					playerID
+				);
+
+				return rollbackDelivery();
+			}
+		}
+
+		// 6. Commit atomico:
+		// - itens inseridos;
+		// - item_id associado;
+		// - claims marcados como DELIVERED.
+		auto commitMsg = db.DirectQuery("COMMIT");
+
+		if (!commitMsg || commitMsg->uiSQLErrno != 0)
+		{
+			sys_err(
+				"Festival: falha no COMMIT da entrega do jogador %u",
+				playerID
+			);
+
+			return rollbackDelivery();
+		}
+
+		// A partir daqui os itens ja existem no banco.
+		// Reativamos o mecanismo normal de salvamento da source.
+		for (size_t i = 0; i < createdItems.size(); ++i)
+			createdItems[i]->SetSkipSave(false);
+
+		sys_log(
+			0,
+			"Festival: entrega concluida. Player %u Guild %u "
+			"Claims %u Items %u",
+			playerID,
+			guildID,
+			static_cast<DWORD>(claimIDs.size()),
+			static_cast<DWORD>(createdItems.size())
+		);
+
+		ch->ChatPacket(
+			CHAT_TYPE_INFO,
+			"Festival: recompensas entregues com sucesso."
+		);
+
+		return true;
+	}
+
 
 }
