@@ -161,6 +161,10 @@ bool CPythonNetworkStream::__RecvLoginSuccessPacket4()
 {
 	TPacketGCLoginSuccess4 kPacketLoginSuccess;
 
+	TraceError("DEBUG CHAR CONFIG: slots=%d packet_size=%u",
+		PLAYER_PER_ACCOUNT4,
+		sizeof(TPacketGCLoginSuccess4));
+
 	if (!Recv(sizeof(kPacketLoginSuccess), &kPacketLoginSuccess))
 		return false;
 

@@ -51,6 +51,8 @@ void CPythonNetworkStream::SelectPhase()
 	if (!CheckPacket(&header))
 		return;
 
+	TraceError("DEBUG DISPATCH SELECT: header=%u", header);
+
 #if defined(_DEBUG) && defined(ENABLE_PRINT_RECV_PACKET_DEBUG)
 	Tracenf("RECV HEADER : %u , phase %s ", header, m_strPhase.c_str());
 #endif

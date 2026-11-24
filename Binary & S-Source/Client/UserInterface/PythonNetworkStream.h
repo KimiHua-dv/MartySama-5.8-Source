@@ -339,10 +339,13 @@ class CPythonNetworkStream : public CNetworkStream, public CSingleton<CPythonNet
 		bool 	SendChestDropInfo(WORD wInventoryCell);
 		bool 	RecvChestDropInfo();
 #endif
-		//item_shop
-		bool SendItemShopOpen();
+		//festival
 		bool SendFestivalOpen();
 		bool SendFestivalMissionAccept(DWORD templateID);
+		bool SendFestivalClaimPending();
+
+		//item_shop
+		bool SendItemShopOpen();
 		bool SendItemShopCategory(BYTE category);
 		bool SendItemShopBuy(DWORD itemID);
 		bool SendItemShopAdminAddItem(DWORD vnum, DWORD count, DWORD price, BYTE discount, BYTE category, BYTE currencyType, DWORD currencyVnum);
