@@ -15,7 +15,8 @@ class Festival(ui.ScriptWindow):
 		self.ClaimedChests = 0
 		self.maxFestivalPoints = 2000
 		self.listStatus = FESTIVAL_LIST_ACTIVE
-
+		self.PendingChestCounts = [0, 0, 0, 0, 0]
+		
 		self.LoadWindow()
 
 	def LoadWindow(self):
@@ -33,6 +34,8 @@ class Festival(ui.ScriptWindow):
 		self.painel_progresso = self.GetChild("painel_lateral_d_1")
 		self.painel_MM = self.GetChild("painel_lateral_d_3")
 		self.painel_reconpensa = self.GetChild("painel_central_baixo")
+		self.btn_resgate = self.GetChild("btn_resgate")
+		self.btn_resgate.SetEvent(ui.__mem_func__(self.RewardChest))
 		self.statusMessages = []
 
 		messages = [
@@ -66,6 +69,9 @@ class Festival(ui.ScriptWindow):
 
 		self.RefreshMissionList()
 	
+	def RewardChest(self):
+		net.SendFestivalClaimPending()
+		
 	def Open(self):
 		self.Show()
 
@@ -273,7 +279,7 @@ class Festival(ui.ScriptWindow):
 		self.text_gaude = ui.TextLine()
 		self.text_gaude.SetParent(self.painel_progresso)
 		self.text_gaude.SetPosition(20, 50)
-		self.text_gaude.SetText("Pontos : %d/%d" % (self.TotalPoints, self.maxFestivalPoints))
+		self.text_gaude.SetText("Pontos : %d/%d" % (self.TotalPoints,self.maxFestivalPoints))
 		self.text_gaude.Show()
 		
 		self.slot = ui.ExpandedImageBox()
@@ -285,7 +291,7 @@ class Festival(ui.ScriptWindow):
 		
 	def RefreshGuildProgress(self):
 		self.guildGauge.SetPercentage(self.TotalPoints,self.maxFestivalPoints)
-		self.text_gaude.SetText("Pontos : %d/%d" % (self.TotalPoints, self.maxFestivalPoints))
+		self.text_gaude.SetText("Pontos : %d/%d" % (self.TotalPoints,self.maxFestivalPoints))
 		
 	def CreateMissionGauge(self):
 		self.MissionGauge = ui.Gauge()
@@ -312,11 +318,19 @@ class Festival(ui.ScriptWindow):
 		self.UpdateRewardGauge()
 		self.SetMilestone()
 
-	def UpdateGuildState(self, total_points, reward_progress, pending_points, claimed_chests):
+	def UpdateGuildState(self,total_points,reward_progress,pending_points,claimed_chests,pending_200,pending_500,pending_1000,pending_1500,pending_2000):
 		self.TotalPoints = int(total_points)
 		self.RewardProgress = int(reward_progress)
 		self.PendingPoints = int(pending_points)
 		self.ClaimedChests = int(claimed_chests)
+
+		self.PendingChestCounts = [
+			int(pending_200),
+			int(pending_500),
+			int(pending_1000),
+			int(pending_1500),
+			int(pending_2000)
+		]
 
 		self.RefreshGuildInfos()
 		self.RefreshGuildProgress()
@@ -332,26 +346,35 @@ class Festival(ui.ScriptWindow):
 		self.RefreshGuildInfos()
 	
 	def UpdateRewardGauge(self):
-		 self.RewardGauge.SetPercentage(self.RewardProgress,self.maxFestivalPoints)
+		 self.RewardGauge.SetPercentage(self.TotalPoints,self.maxFestivalPoints)
 		
 	def UpdateMileStone(self):
 		milestones = [
-			(200, self.rec_1, 1),
-			(500, self.rec_2, 2),
-			(1000, self.rec_3, 4),
-			(1500, self.rec_4, 8),
-			(2000, self.rec_5, 16)
+			(200, self.rec_1),
+			(500, self.rec_2),
+			(1000, self.rec_3),
+			(1500, self.rec_4),
+			(2000, self.rec_5)
 		]
 
-		for index, (points, image, chestBit) in enumerate(milestones):
-			if self.RewardProgress >= points:
+		for index, (points, image) in enumerate(milestones):
+
+			pending = self.PendingChestCounts[index]
+
+			if pending > 0:
+				# Existem recompensas aguardando resgate.
 				image.LoadImage(
 					"festival/rec_%d_1.tga" % (index + 1)
 				)
 
-			if self.ClaimedChests & chestBit:
-				self.chestStatus[index].SetText("OK")
+				self.chestStatus[index].SetText(str(pending))
+
 			else:
+				# Sem recompensas pendentes: volta ao estado bloqueado.
+				image.LoadImage(
+					"festival/rec_%d.tga" % (index + 1)
+				)
+
 				self.chestStatus[index].SetText("")
 			
 	def SetMilestone(self):
@@ -417,12 +440,15 @@ class Festival(ui.ScriptWindow):
 		
 		self.chestStatus = []
 
-		chestPositions = [58, 111, 192, 272, 343]
+		chestPositions = [50, 103, 185, 265, 335]
 
 		for x in chestPositions:
 			status = ui.TextLine()
 			status.SetParent(self.painel_reconpensa)
-			status.SetPosition(x, 75)
+
+			status.SetPosition(x + 25, 49)
+			status.SetHorizontalAlignCenter()
+			status.SetFontColor(255,0,0)
 			status.SetText("")
 			status.Show()
 

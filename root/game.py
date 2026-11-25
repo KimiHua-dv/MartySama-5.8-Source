@@ -2417,9 +2417,9 @@ class GameWindow(ui.ScriptWindow):
 		else:
 			dbg.TraceError("FESTIVAL: janela Festival nao existe")
 			
-	def UpdateFestivalGuildState(self, total_points, reward_progress, pending_points, claimed_chests):
+	def UpdateFestivalGuildState(self,total_points,reward_progress,pending_points,claimed_chests,pending_200,pending_500,pending_1000,pending_1500,pending_2000):
 		if self.Festival:
-			self.Festival.UpdateGuildState(total_points,reward_progress,pending_points,claimed_chests)
+			self.Festival.UpdateGuildState(total_points,reward_progress,pending_points,claimed_chests,pending_200,pending_500,pending_1000,pending_1500,pending_2000)
 			
 	def ReloadItemShop(self):
 
