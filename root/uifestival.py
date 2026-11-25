@@ -378,6 +378,7 @@ class Festival(ui.ScriptWindow):
 				self.chestStatus[index].SetText("")
 			
 	def SetMilestone(self):
+			
 		self.rec_1 = ui.ExpandedImageBox()
 		self.rec_1.SetParent(self.painel_reconpensa)
 		self.rec_1.SetPosition(50, 30)
@@ -446,13 +447,14 @@ class Festival(ui.ScriptWindow):
 			status = ui.TextLine()
 			status.SetParent(self.painel_reconpensa)
 
-			status.SetPosition(x + 25, 49)
+			status.SetPosition(x + 25, 48)
 			status.SetHorizontalAlignCenter()
-			status.SetFontColor(255,0,0)
 			status.SetText("")
+			status.SetFontColor(1.0, 0.25, 0.25)
+			status.SetOutline()
 			status.Show()
 
 			self.chestStatus.append(status)
-
+			
 		self.UpdateMileStone()
 		
