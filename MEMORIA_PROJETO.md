@@ -23,7 +23,14 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 
 ### Festival de Guildas
 
-Em andamento: ## 3. Pendências globais
+- **Concluído:** distribuição de missões, hooks (Metin, monstro, PvP e coleta), progresso individual, expiração, pontuação coletiva, comando GM e `ProcessCycle()`.
+- **Concluído:** histórico de edições, encerramento manual testado e sistema de claims individuais dos baús com entrega idempotente.
+- **Concluído:** interface central — lista de missões, recompensas, cinco baús, contadores individuais, barra de pontos compartilhada, indicador de missões aceitas por membro e tooltips.
+- **Em andamento:** ciclo completo de encerramento do evento, incluindo `FinalizeFestivalEvent()`, integração dos três caminhos e validação de `StartEvent()`.
+- **Próxima prioridade 1:** progresso e tempo restante das missões aceitas; exibir o nome do jogador responsável quando outro membro aceitar uma missão.
+- **Próxima prioridade 2:** painel Informações com contribuição individual, posição na guilda, total de renovações e contagem regressiva para a próxima renovação automática.
+- **concluido:** validar protocolo de disponibilidade da lista (`FESTIVAL_LIST_ACTIVE/UNAVAILABLE`) e testar o ciclo completo entre encerramento, histórico e nova edição.
+- **Futuro:** painel histórico de edições.
 
 ### Sistema de reinos
 - (preencher status)
@@ -32,12 +39,9 @@ Em andamento: ## 3. Pendências globais
 - (preencher status)
 
 ## 3. Pendências globais (ordem de prioridade)
-1-Atualizar o banco para suportar sequências e resgates individuais em lote.(feito)
-2-Implementar o cálculo de recompensas pendentes e o sorteio persistente.(feito)
-3-Implementar entrega segura, inclusive quando o inventário estiver cheio.
-4-Criar o protocolo cliente-servidor para solicitar o resgate em lote.
-5-Atualizar o indicador numérico do baú superior e o estado visual após o resgate.
-6-Finalizar o resgate dos baús.
+1. Festival — exibir progresso e tempo restante das missões aceitas e identificar o jogador responsável pelas missões ocupadas.
+2. Festival — implementar o painel Informações: contribuição, posição na guilda, renovações e próxima renovação automática.
+
 
 ## 4. Problemas conhecidos / armadilhas
 
@@ -45,7 +49,12 @@ Em andamento: ## 3. Pendências globais
 - (adicionar o que já deu errado e a causa)
 - Não solicitar novamente arquivos já analisados no GitHub quando a VM estiver alinhada com o repositório. Reutilizar as verificações anteriores, conferindo o commit quando houver indício de divergência.
 - No chat normal, não interromper a implementação para solicitar arquivos que podem ser consultados no GitHub. Se a implementação não puder ser confirmada na source, informar a limitação e pedir somente o trecho indispensável.
-
+- A interface central do Festival está concluída. Não duplicar mecanismos de atualização já existentes.
+- A barra de pontos é compartilhada pela guilda e deriva da pontuação acumulada; não deve depender do resgate individual dos baús.
+- Os contadores dos baús são individuais por jogador. Não utilizar o estado de resgate de um membro para alterar o estado dos demais.
+- O limite de 2 missões aceitas por jogador por ciclo é validado pelo servidor. A interface deve apenas apresentar o estado recebido, sem implementar uma segunda validação local.
+- Progresso e tempo restante das missões devem refletir dados autoritativos do servidor; não tratar contadores locais como fonte da verdade.
+- O nome exibido para uma missão ocupada deve identificar o jogador que efetivamente a aceitou, não o líder da guilda nem o último jogador que abriu o painel.
 
 ## Diário de sessões
 
@@ -56,3 +65,12 @@ Em andamento: ## 3. Pendências globais
 - Decisões: não exigir Work mode nem reenvio de arquivos para continuar a análise; apresentar alterações sugeridas com instruções claras.
 - Compilou/testou na VM: sim.
 - Próximo passo: 
+
+### 2026-11-25 — Festival de Guildas: interface central
+
+- Feito: conclusão da interface central do Festival, incluindo lista de missões, painel de recompensas, cinco baús com contadores individuais, tooltips, barra de pontos compartilhada e indicador de missões aceitas por membro.
+- Confirmado na source: mecanismos de estado do Festival, pontuação coletiva, claims individuais e limite de duas missões aceitas por jogador por ciclo.
+- Proposta (não verificada/compilada): progresso e tempo restante das missões aceitas; identificação do jogador responsável por missões ocupadas; painel Informações.
+- Decisões: barra de progresso compartilhada, calculada pelos pontos da guilda; resgates e contadores dos baús continuam individuais.
+- Compilou/testou na VM: interface central testada visualmente pelo usuário; novas funcionalidades ainda não implementadas.
+- Próximo passo: 1. Implementar detalhes das missões aceitas. 2. Implementar o painel Informações.

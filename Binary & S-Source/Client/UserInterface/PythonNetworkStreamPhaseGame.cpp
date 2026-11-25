@@ -5017,12 +5017,11 @@ bool CPythonNetworkStream::RecvFestivalPacket()
 			vecBuffer.data(),
 			sizeof(TPacketGCFestivalGuildState)
 		);
-
 		PyCallClassMemberFunc(
 			m_apoPhaseWnd[PHASE_WINDOW_GAME],
 			"UpdateFestivalGuildState",
 			Py_BuildValue(
-				"(IIIIIIIII)",
+				"(IIIIIIIIII)",
 				static_cast<unsigned int>(guildState.total_points),
 				static_cast<unsigned int>(guildState.reward_progress),
 				static_cast<unsigned int>(guildState.pending_points),
@@ -5031,7 +5030,8 @@ bool CPythonNetworkStream::RecvFestivalPacket()
 				static_cast<unsigned int>(guildState.pending_chest_500),
 				static_cast<unsigned int>(guildState.pending_chest_1000),
 				static_cast<unsigned int>(guildState.pending_chest_1500),
-				static_cast<unsigned int>(guildState.pending_chest_2000)
+				static_cast<unsigned int>(guildState.pending_chest_2000),
+				static_cast<unsigned int>(guildState.accepted_missions)
 			)
 		);
 	}

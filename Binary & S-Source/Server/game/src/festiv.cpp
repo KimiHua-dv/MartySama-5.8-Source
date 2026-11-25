@@ -2952,9 +2952,53 @@ namespace Festival
 		str_to_number(payload.pending_chest_1000, pendingRow[2]);
 		str_to_number(payload.pending_chest_1500, pendingRow[3]);
 		str_to_number(payload.pending_chest_2000, pendingRow[4]);
+		
+		// ---------------------------------------------------------
+		// 3. Contador individual de missoes aceitas no ciclo atual.
+		// ---------------------------------------------------------
+
+		auto memberMissionMsg = DBManager::instance().DirectQuery(
+			"SELECT COALESCE(player_state.accepted_missions, 0) "
+			"FROM srv1_player.festival_event AS event "
+			"LEFT JOIN srv1_player.festival_player_state AS player_state "
+				"ON player_state.event_id = event.id "
+				"AND player_state.guild_id = %u "
+				"AND player_state.player_id = %u "
+				"AND player_state.cycle_id = event.current_cycle "
+			"WHERE event.id = %u "
+			"LIMIT 1",
+			guildID,
+			playerID,
+			FESTIVAL_EVENT_ID
+		);
+
+		SQLResult* memberMissionResult = GetSelectResult(
+			memberMissionMsg,
+			"consultar missoes aceitas pelo jogador"
+		);
+
+		if (!memberMissionResult)
+			return;
+
+		MYSQL_ROW memberMissionRow =
+			mysql_fetch_row(memberMissionResult->pSQLResult);
+
+		if (!memberMissionRow || !memberMissionRow[0])
+		{
+			sys_err(
+				"Festival: falha ao consultar missoes do jogador %u",
+				playerID
+			);
+			return;
+		}
+
+		str_to_number(
+			payload.accepted_missions,
+			memberMissionRow[0]
+		);
 
 		// ---------------------------------------------------------
-		// 3. Envia o pacote.
+		// 4. Envia o pacote.
 		// ---------------------------------------------------------
 
 		TPacketGCFestival header = {};
@@ -3921,6 +3965,9 @@ namespace Festival
 			CHAT_TYPE_INFO,
 			"Festival: recompensas entregues com sucesso."
 		);
+
+		// Atualiza imediatamente a barra e os estados dos baus.
+		SendGuildState(ch);
 
 		return true;
 	}

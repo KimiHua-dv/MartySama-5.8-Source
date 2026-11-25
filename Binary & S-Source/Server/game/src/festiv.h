@@ -134,6 +134,8 @@ typedef struct SFestivalGuildStatePacket
     DWORD pending_chest_1000;
     DWORD pending_chest_1500;
     DWORD pending_chest_2000;
+	
+	DWORD accepted_missions;
 } TPacketGCFestivalGuildState;
 #pragma pack(pop)
 #pragma pack(pop)

@@ -925,6 +925,8 @@ int CInputMain::FestivGuild(LPCHARACTER ch, const char* data)
             // Reenviar a lista mesmo quando outra pessoa reivindicou primeiro.
             // Assim o painel mostra o estado atual da missao para a guilda.
             Festival::SendMission(ch);
+			// Atualiza o contador individual de missoes aceitas.
+			Festival::SendGuildState(ch);
         }
         break;
 		

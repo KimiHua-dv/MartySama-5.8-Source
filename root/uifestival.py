@@ -1,4 +1,4 @@
-import ui, chat, guild, net
+import ui, chat, guild, net, uitooltip
 
 FESTIVAL_LIST_ACTIVE = 0
 FESTIVAL_LIST_UNAVAILABLE = 1
@@ -9,14 +9,18 @@ class Festival(ui.ScriptWindow):
 
 		self.missions = []
 		self.missionItems = []
+
 		self.TotalPoints = 0
 		self.RewardProgress = 0
 		self.PendingPoints = 0
 		self.ClaimedChests = 0
+		self.AcceptedMissions = 0
+
 		self.maxFestivalPoints = 2000
 		self.listStatus = FESTIVAL_LIST_ACTIVE
+
 		self.PendingChestCounts = [0, 0, 0, 0, 0]
-		
+
 		self.LoadWindow()
 
 	def LoadWindow(self):
@@ -76,6 +80,8 @@ class Festival(ui.ScriptWindow):
 		self.Show()
 
 	def Close(self):
+		if hasattr(self, "chestToolTip"):
+			self.chestToolTip.HideToolTip()
 		self.Hide()
 
 	def OnPressEscapeKey(self):
@@ -290,22 +296,34 @@ class Festival(ui.ScriptWindow):
 		self.RefreshGuildProgress()
 		
 	def RefreshGuildProgress(self):
-		self.guildGauge.SetPercentage(self.TotalPoints,self.maxFestivalPoints)
-		self.text_gaude.SetText("Pontos : %d/%d" % (self.TotalPoints,self.maxFestivalPoints))
+		totalPoints = int(self.TotalPoints)
+
+		# Progresso do ciclo atual.
+		progress = totalPoints % self.maxFestivalPoints
+
+		# Em um multiplo exato, mantem a barra cheia.
+		if totalPoints > 0 and progress == 0:
+			progress = self.maxFestivalPoints
+		self.guildGauge.SetPercentage(progress,self.maxFestivalPoints)
+		self.text_gaude.SetText("Pontos : %d/%d" % (progress,self.maxFestivalPoints))
 		
 	def CreateMissionGauge(self):
 		self.MissionGauge = ui.Gauge()
 		self.MissionGauge.SetParent(self.painel_MM)
 		self.MissionGauge.MakeGauge(130, "purple")
 		self.MissionGauge.SetPosition(10, 40)
-		self.MissionGauge.SetPercentage(1, 2)
+		self.MissionGauge.SetPercentage(self.AcceptedMissions,2)
 		self.MissionGauge.Show()
-		
+
 		self.textMission = ui.TextLine()
 		self.textMission.SetParent(self.painel_MM)
 		self.textMission.SetPosition(40, 50)
-		self.textMission.SetText("Missões : 1/2")
+		self.textMission.SetText("Missões : %d/2" % self.AcceptedMissions)
 		self.textMission.Show()
+		
+	def UpdateMemberMissionGauge(self):
+		self.MissionGauge.SetPercentage(self.AcceptedMissions,2)
+		self.textMission.SetText("Missões : %d/2" % self.AcceptedMissions)
 		
 	def CreateRewardGauge(self):
 		self.RewardGauge = ui.Gauge()
@@ -318,7 +336,7 @@ class Festival(ui.ScriptWindow):
 		self.UpdateRewardGauge()
 		self.SetMilestone()
 
-	def UpdateGuildState(self,total_points,reward_progress,pending_points,claimed_chests,pending_200,pending_500,pending_1000,pending_1500,pending_2000):
+	def UpdateGuildState(self,total_points,reward_progress,pending_points,claimed_chests,pending_200,pending_500,pending_1000,pending_1500,pending_2000,accepted_missions):
 		self.TotalPoints = int(total_points)
 		self.RewardProgress = int(reward_progress)
 		self.PendingPoints = int(pending_points)
@@ -331,11 +349,14 @@ class Festival(ui.ScriptWindow):
 			int(pending_1500),
 			int(pending_2000)
 		]
-
+		
+		self.AcceptedMissions = int(accepted_missions)
+		
 		self.RefreshGuildInfos()
 		self.RefreshGuildProgress()
 		self.UpdateRewardGauge()
 		self.UpdateMileStone()
+		self.UpdateMemberMissionGauge()
 		
 	def AddTestPoints(self, amount):
 		self.RewardProgress += amount
@@ -346,7 +367,16 @@ class Festival(ui.ScriptWindow):
 		self.RefreshGuildInfos()
 	
 	def UpdateRewardGauge(self):
-		 self.RewardGauge.SetPercentage(self.TotalPoints,self.maxFestivalPoints)
+		totalPoints = int(self.TotalPoints)
+
+		# Progresso do ciclo atual.
+		progress = totalPoints % self.maxFestivalPoints
+
+		# Em um multiplo exato, mantem a barra cheia.
+		if totalPoints > 0 and progress == 0:
+			progress = self.maxFestivalPoints
+
+		self.RewardGauge.SetPercentage(progress,self.maxFestivalPoints)
 		
 	def UpdateMileStone(self):
 		milestones = [
@@ -378,7 +408,9 @@ class Festival(ui.ScriptWindow):
 				self.chestStatus[index].SetText("")
 			
 	def SetMilestone(self):
-			
+		self.chestToolTip = uitooltip.ToolTip()
+		self.chestToolTip.HideToolTip()
+
 		self.rec_1 = ui.ExpandedImageBox()
 		self.rec_1.SetParent(self.painel_reconpensa)
 		self.rec_1.SetPosition(50, 30)
@@ -456,5 +488,33 @@ class Festival(ui.ScriptWindow):
 
 			self.chestStatus.append(status)
 			
+		chestImages = [
+			self.rec_1,
+			self.rec_2,
+			self.rec_3,
+			self.rec_4,
+			self.rec_5
+		]
+
+		chestPoints = [200, 500, 1000, 1500, 2000]
+
+		for index, image in enumerate(chestImages):
+			image.SAFE_SetStringEvent("MOUSE_OVER_IN",self.ShowChestToolTip,chestPoints[index])
+			image.SAFE_SetStringEvent("MOUSE_OVER_OUT",self.HideChestToolTip)
+
+		self.UpdateMileStone()
+
 		self.UpdateMileStone()
 		
+	def ShowChestToolTip(self, points):
+		self.chestToolTip.ClearToolTip()
+		self.chestToolTip.toolTipWidth = 250
+		self.chestToolTip.SetTitle("Bau de recompensa - %d pontos" % points)
+		self.chestToolTip.AppendTextLine("Os numeros indicam a quantidade",0xffffffff)
+		self.chestToolTip.AppendTextLine("de baus disponiveis para resgate.",0xffffffff)
+		self.chestToolTip.AppendTextLine("Confira as recompensas na aba",0xffffffff)
+		self.chestToolTip.AppendTextLine("Recompensas.",0xffffffff)
+		self.chestToolTip.ShowToolTip()
+
+	def HideChestToolTip(self):
+		self.chestToolTip.HideToolTip()

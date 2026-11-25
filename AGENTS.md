@@ -157,15 +157,49 @@ Controlada pela informação explícita do servidor, sem apagar missões do banc
 
 Estado e ordem de trabalho (prioridade máxima)
 
-Concluído: encerramento do evento e interface com mensagem de evento encerrado.
+Concluído — núcleo do sistema:
 
-Próxima etapa: validar a entrega das recompensas. Não começar por funcionalidades novas.
+Distribuição de missões, hooks, progresso individual, expiração e pontuação coletiva.
 
-Atualizar o banco para suportar sequências e resgates individuais em lote. (feito)
-Implementar o cálculo de recompensas pendentes e o sorteio persistente. (feito)
-Implementar entrega segura, inclusive quando o inventário estiver cheio.
-Criar o protocolo cliente-servidor para solicitar o resgate em lote.
-Atualizar o indicador numérico do baú superior e o estado visual após o resgate.
-Finalizar o resgate dos baús.
+Controle de até 2 missões aceitas por jogador em cada ciclo e limite de 1 missão IN_PROGRESS simultânea.
+
+Ciclos, renovação de missões e comando GM.
+
+Histórico de edições em festival_guild_history.
+
+Encerramento manual testado.
+
+Sistema de claims individuais dos baús, preparação de recompensas, sorteio persistente e entrega idempotente.
+
+Protocolo e interface dos baús: cinco marcos, contadores individuais de recompensas pendentes e atualização após resgate.
+
+Interface central do Festival: painel de missões, recompensas, barra de pontos, progresso dos marcos, indicador de missões por membro e tooltips dos baús.
+
+Barra de progresso compartilhada da guilda, calculada a partir dos pontos acumulados, independente dos resgates individuais.
+
+Interface central concluída. Não reabrir essa etapa sem identificar um problema funcional concreto.
+
+Próximas prioridades de desenvolvimento:
+
+-Informações detalhadas das missões aceitas:
+Exibir o progresso atual e o tempo restante em cada missão aceita.
+Quando a missão estiver ocupada por outro jogador, substituir o texto genérico "Em curso" pelo nome do jogador responsável.
+Para o próprio jogador, apresentar seu progresso e tempo restante.
+Manter a validação e a autoridade do estado no servidor.
+-Painel Informações:
+Exibir a contribuição individual do jogador.
+Exibir sua posição na guilda.
+Exibir o total de renovações.
+Exibir o tempo restante até a próxima renovação automática.
+Atualizar os dados conforme o estado real do servidor.
+
+Pendências posteriores à interface:
+Revisar FinalizeFestivalEvent() e confirmar sua implementação.(concluido)
+Integrar e validar os três caminhos de encerramento: manual, automático por ends_at e recuperação durante PROCESSING.(concluido)
+Revisar StartEvent() e confirmar que a limpeza só ocorre depois do encerramento e arquivamento da edição anterior.(concluido)
+Remover resets desnecessários de cycle_id e de AUTO_INCREMENT.(concluido)
+Validar o protocolo de disponibilidade da lista de missões (ACTIVE / UNAVAILABLE) em todos os estados do evento.(concluido)
+Testar o ciclo completo de encerramento, histórico e abertura de nova edição.(concluido)
+
 
 Ao receber este arquivo, comece pelo item 3 e entregue o código completo (servidor, SQL se houver, comandos de compilação e testes), sem etapa prévia de análise.
