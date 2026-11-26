@@ -2411,9 +2411,9 @@ class GameWindow(ui.ScriptWindow):
 			self.Festival.SetFestivalListStatus(status)
 
 
-	def AppendFestivalMission(self, mission_id, title, description, points, mission_type, target_vnum, target_count, time_limit, status):
+	def AppendFestivalMission(self, mission_id, title, description, points, mission_type, target_vnum, target_count, time_limit, status,progress,remaining_time,player_name,is_owner):
 		if self.Festival:
-			self.Festival.AppendFestivalMission(mission_id, title, description, points, mission_type, target_vnum, target_count, time_limit, status)
+			self.Festival.AppendFestivalMission(self, mission_id, title, description, points, mission_type, target_vnum, target_count, time_limit, status,progress,remaining_time,player_name,is_owner)
 		else:
 			dbg.TraceError("FESTIVAL: janela Festival nao existe")
 			

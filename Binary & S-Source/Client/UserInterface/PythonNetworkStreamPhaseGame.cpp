@@ -4975,22 +4975,21 @@ bool CPythonNetworkStream::RecvFestivalPacket()
 				reinterpret_cast<TFestivalMissionPacket*>(
 					vecBuffer.data() + readPoint
 					);
-
-			PyCallClassMemberFunc(
-				m_apoPhaseWnd[PHASE_WINDOW_GAME],
-				"AppendFestivalMission",
-				Py_BuildValue(
-					"(issiiiiii)",
-					static_cast<int>(mission->id),
-					mission->title,
-					mission->description,
-					static_cast<int>(mission->points),
-					static_cast<int>(mission->type),
-					static_cast<int>(mission->target_vnum),
-					static_cast<int>(mission->target_count),
-					static_cast<int>(mission->time_limit),
-					static_cast<int>(mission->status)
-				)
+			Py_BuildValue(
+				"(issiiiiiiiisi)",
+				static_cast<int>(mission->id),
+				mission->title,
+				mission->description,
+				static_cast<int>(mission->points),
+				static_cast<int>(mission->type),
+				static_cast<int>(mission->target_vnum),
+				static_cast<int>(mission->target_count),
+				static_cast<int>(mission->time_limit),
+				static_cast<int>(mission->status),
+				static_cast<int>(mission->progress),
+				static_cast<int>(mission->remaining_time),
+				mission->player_name,
+				static_cast<int>(mission->is_owner)
 			);
 
 			readPoint += sizeof(TFestivalMissionPacket);

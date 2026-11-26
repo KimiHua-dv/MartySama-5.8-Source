@@ -113,8 +113,8 @@ class Festival(ui.ScriptWindow):
 		self.guildLevel.SetText("Nivel: %s" % guild_level)
 		self.guildPoint.SetText("Pontos: %s" % guild_points)
 	
-	def AppendFestivalMission(self, mission_id, title, description, points, mission_type, target_vnum, target_count, time_limit, status):
-		mission = {
+	def AppendFestivalMission(self, mission_id, title, description, points, mission_type, target_vnum, target_count, time_limit, status,progress,remaining_time,player_name,is_owner):
+		 mission = {
 			"id": int(mission_id),
 			"title": title,
 			"description": description,
@@ -123,7 +123,11 @@ class Festival(ui.ScriptWindow):
 			"target_vnum": int(target_vnum),
 			"target_count": int(target_count),
 			"time_limit": int(time_limit),
-			"status": int(status)
+			"status": int(status),
+			"progress": int(progress),
+			"remaining_time": int(remaining_time),
+			"player_name": player_name,
+			"is_owner": int(is_owner)
 		}
 
 		self.missions.append(mission)

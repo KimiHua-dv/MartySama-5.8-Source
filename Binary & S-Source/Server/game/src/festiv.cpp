@@ -86,7 +86,20 @@ namespace
 		str_to_number(mission.target_vnum, row[5]);
 		str_to_number(mission.target_count, row[6]);
 		str_to_number(mission.time_limit, row[7]);
+		str_to_number(mission.status, row[8]);
+		str_to_number(mission.progress, row[9]);
+		str_to_number(mission.remaining_time, row[10]);
 
+		if (row[11])
+			str_to_number(mission.player_id, row[11]);
+
+		if (row[12])
+			mission.player_name = row[12];
+
+		mission.is_owner =
+			mission.player_id != 0 &&
+			mission.player_id == ch->GetPlayerID();
+			
 		return mission.id > 0
 			&& mission.points >= 0
 			&& mission.target_vnum >= 0
@@ -410,7 +423,16 @@ namespace
 			entry.target_count = static_cast<DWORD>(source.target_count);
 			entry.time_limit = static_cast<DWORD>(source.time_limit);
 			entry.status = source.status;
+			entry.progress = source.progress;
+			entry.remaining_time = source.remaining_time;
+			entry.is_owner = source.is_owner ? 1 : 0;
 
+			strncpy(
+				entry.player_name,
+				source.player_name.c_str(),
+				sizeof(entry.player_name) - 1
+			);
+			
 			memcpy(buffer.data() + offset, &entry, sizeof(entry));
 			offset += sizeof(entry);
 		}
@@ -1542,25 +1564,39 @@ namespace Festival
 
 		// 4. Carregar missoes do ciclo atual.
 		auto pmsg = DBManager::instance().DirectQuery(
-			"SELECT mission.template_id, template.title, template.description, "
-			"mission.points, template.type, template.target_vnum, "
-			"mission.target_count, template.time_limit, "
+			"SELECT "
+			"mission.template_id, "
+			"template.title, "
+			"template.description, "
+			"mission.points, "
+			"template.type, "
+			"template.target_vnum, "
+			"mission.target_count, "
+			"template.time_limit, "
 			"CASE mission.status "
 			"WHEN 'AVAILABLE' THEN 0 "
 			"WHEN 'IN_PROGRESS' THEN 1 "
 			"WHEN 'COMPLETED' THEN 2 "
-			"WHEN 'FAILED' THEN 3 ELSE 255 END "
-			"FROM srv1_player.festival_guild_mission AS mission "
-			"INNER JOIN srv1_player.festival_mission_template AS template "
-			"ON template.id = mission.template_id "
-			"WHERE mission.event_id = %u "
-			"AND mission.guild_id = %u "
-			"AND mission.cycle_id = ("
-				"SELECT current_cycle "
-				"FROM srv1_player.festival_event "
-				"WHERE id = %u"
-			") "
-			"ORDER BY mission.id LIMIT 5",
+			"WHEN 'FAILED' THEN 3 "
+			"ELSE 255 "
+			"END, "
+			"mission.progress, "
+			"COALESCE( "
+			"GREATEST( "
+			"TIMESTAMPDIFF(SECOND, NOW(), mission.expires_at), 0 ), 0 ), "
+			"mission.player_id, "
+			"COALESCE(owner.name, '') "
+		"FROM srv1_player.festival_guild_mission AS mission "
+		"INNER JOIN srv1_player.festival_mission_template AS template "
+		"ON template.id = mission.template_id "
+		"LEFT JOIN srv1_player.player AS owner "
+		"ON owner.id = mission.player_id "
+		"WHERE mission.event_id = %u "
+		"AND mission.guild_id = %u "
+		"AND mission.cycle_id = "
+		"( SELECT current_cycle FROM srv1_player.festival_event WHERE id = %u ) "
+		"ORDER BY mission.id "
+		"LIMIT 5 "
 			FESTIVAL_EVENT_ID,
 			guildID,
 			FESTIVAL_EVENT_ID

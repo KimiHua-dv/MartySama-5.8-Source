@@ -95,6 +95,11 @@ typedef struct SMission
 	int target_count;
 	int time_limit;
 	BYTE status;
+	DWORD progress;
+	DWORD remaining_time;
+	DWORD player_id;
+	bool is_owner;
+	std::string player_name;
 } TMission;
 
 enum EFestivalMissionStatus
@@ -117,6 +122,10 @@ typedef struct SFestivalMissionPacket
 	DWORD target_count;
 	DWORD time_limit;
 	BYTE status;
+	DWORD progress;
+	DWORD remaining_time;
+	BYTE is_owner;
+	char player_name[CHARACTER_NAME_MAX_LEN + 1];
 } TFestivalMissionPacket;
 #pragma pack(pop)
 
