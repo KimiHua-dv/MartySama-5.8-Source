@@ -34,6 +34,7 @@ namespace Festival
 	void SendGuildState(LPCHARACTER ch);
 	bool PreparePlayerChestClaims(LPCHARACTER ch);
 	bool ClaimPendingChests(LPCHARACTER ch);
+	void SendMissionProgress(LPCHARACTER ch, DWORD templateID);
 }
 
 enum EFestivalGuildHeader
@@ -48,8 +49,18 @@ enum EFestivalGuildSubHeader
 	FEST_GC_MISSION_LIST,
 	FEST_CG_ACCEPT_MISSION,
 	FEST_GC_GUILD_STATE,
-	FEST_CG_CLAIM_PENDING
+	FEST_CG_CLAIM_PENDING,
+	FEST_GC_MISSION_UPDATE
 };
+
+#pragma pack(push, 1)
+typedef struct SFestivalMissionUpdatePacket
+{
+    DWORD template_id;
+    DWORD progress;
+    BYTE status;
+} TPacketGCFestivalMissionUpdate;
+#pragma pack(pop)
 
 enum EFestivalMissionListStatus
 {
@@ -130,7 +141,6 @@ typedef struct SFestivalMissionPacket
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-#pragma pack(push, 1)
 typedef struct SFestivalGuildStatePacket
 {
     DWORD total_points;
@@ -146,7 +156,6 @@ typedef struct SFestivalGuildStatePacket
 	
 	DWORD accepted_missions;
 } TPacketGCFestivalGuildState;
-#pragma pack(pop)
 #pragma pack(pop)
 
 #endif

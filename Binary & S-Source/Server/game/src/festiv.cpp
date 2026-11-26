@@ -68,9 +68,10 @@ namespace
 		if (!row)
 			return false;
 
+		// Os oito primeiros campos sao obrigatorios.
 		for (int i = 0; i < 8; ++i)
 		{
-			if (row[i] == NULL)
+			if (!row[i])
 				return false;
 		}
 
@@ -78,6 +79,7 @@ namespace
 			return false;
 
 		mission = TMission();
+
 		str_to_number(mission.id, row[0]);
 		mission.title = row[1];
 		mission.description = row[2];
@@ -86,20 +88,7 @@ namespace
 		str_to_number(mission.target_vnum, row[5]);
 		str_to_number(mission.target_count, row[6]);
 		str_to_number(mission.time_limit, row[7]);
-		str_to_number(mission.status, row[8]);
-		str_to_number(mission.progress, row[9]);
-		str_to_number(mission.remaining_time, row[10]);
 
-		if (row[11])
-			str_to_number(mission.player_id, row[11]);
-
-		if (row[12])
-			mission.player_name = row[12];
-
-		mission.is_owner =
-			mission.player_id != 0 &&
-			mission.player_id == ch->GetPlayerID();
-			
 		return mission.id > 0
 			&& mission.points >= 0
 			&& mission.target_vnum >= 0
@@ -347,10 +336,7 @@ namespace
 	}
 
 	
-	void SendMissionPacket(
-		LPDESC d,
-		const std::vector<TMission>& missions,
-		BYTE status)
+	void SendMissionPacket(LPDESC d, const std::vector<TMission>& missions, BYTE status)
 	{
 		if (!d)
 			return;
@@ -409,13 +395,20 @@ namespace
 			const TMission& source = missions[i];
 
 			TFestivalMissionPacket entry = {};
+
 			entry.id = static_cast<DWORD>(source.id);
 
-			strncpy(entry.title, source.title.c_str(),
-				sizeof(entry.title) - 1);
+			strncpy(
+				entry.title,
+				source.title.c_str(),
+				sizeof(entry.title) - 1
+			);
 
-			strncpy(entry.description, source.description.c_str(),
-				sizeof(entry.description) - 1);
+			strncpy(
+				entry.description,
+				source.description.c_str(),
+				sizeof(entry.description) - 1
+			);
 
 			entry.points = static_cast<DWORD>(source.points);
 			entry.type = source.type;
@@ -423,6 +416,7 @@ namespace
 			entry.target_count = static_cast<DWORD>(source.target_count);
 			entry.time_limit = static_cast<DWORD>(source.time_limit);
 			entry.status = source.status;
+
 			entry.progress = source.progress;
 			entry.remaining_time = source.remaining_time;
 			entry.is_owner = source.is_owner ? 1 : 0;
@@ -432,22 +426,28 @@ namespace
 				source.player_name.c_str(),
 				sizeof(entry.player_name) - 1
 			);
-			
-			memcpy(buffer.data() + offset, &entry, sizeof(entry));
+
+			memcpy(
+				buffer.data() + offset,
+				&entry,
+				sizeof(entry)
+			);
+
 			offset += sizeof(entry);
 		}
 
 		if (offset != totalSize)
 		{
-			sys_err("Festival: tamanho incorreto do pacote (%u/%u)",
+			sys_err(
+				"Festival: tamanho incorreto do pacote (%u/%u)",
 				static_cast<unsigned int>(offset),
-				static_cast<unsigned int>(totalSize));
+				static_cast<unsigned int>(totalSize)
+			);
 			return;
 		}
 
 		d->Packet(buffer.data(), buffer.size());
 	}
-
 }
 
 
@@ -1479,7 +1479,65 @@ namespace Festival
 		return true;
 	}
 	
-	
+	void SendMissionProgress(LPCHARACTER ch, DWORD templateID)
+	{
+		if (!ch || !ch->IsPC() || templateID == 0)
+			return;
+
+		CGuild* guild = ch->GetGuild();
+
+		if (!guild)
+			return;
+
+		auto msg = DBManager::instance().DirectQuery(
+			"SELECT "
+			"mission.progress, "
+			"CASE mission.status "
+			"WHEN 'AVAILABLE' THEN 0 "
+			"WHEN 'IN_PROGRESS' THEN 1 "
+			"WHEN 'COMPLETED' THEN 2 "
+			"WHEN 'FAILED' THEN 3 "
+			"ELSE 255 END "
+			"FROM srv1_player.festival_guild_mission AS mission "
+			"INNER JOIN srv1_player.festival_event AS event "
+			"ON event.id = mission.event_id "
+			"WHERE mission.event_id = %u "
+			"AND mission.guild_id = %u "
+			"AND mission.template_id = %u "
+			"AND mission.cycle_id = event.current_cycle "
+			"LIMIT 1",
+			FESTIVAL_EVENT_ID,
+			guild->GetID(),
+			templateID
+		);
+
+		SQLResult* result = GetSelectResult(
+			msg,
+			"consultar progresso para atualizacao do cliente"
+		);
+
+		if (!result)
+			return;
+
+		MYSQL_ROW row = mysql_fetch_row(result->pSQLResult);
+
+		if (!row || !row[0] || !row[1])
+			return;
+
+		TPacketGCFestival header = {};
+		header.header = HEADER_GC_FESTIVAL;
+		header.size = sizeof(header) + sizeof(TPacketGCFestivalMissionUpdate);
+		header.subheader = FEST_GC_MISSION_UPDATE;
+
+		TPacketGCFestivalMissionUpdate payload = {};
+		str_to_number(payload.progress, row[0]);
+		str_to_number(payload.status, row[1]);
+		payload.template_id = templateID;
+
+		guild->Packet(&header, sizeof(header));
+		guild->Packet(&payload, sizeof(payload));
+	}
+
 	void SendMission(LPCHARACTER ch)
 	{
 		if (!ch)
@@ -1526,10 +1584,6 @@ namespace Festival
 		// 2. Somente ACTIVE permite carregar missoes.
 		if (strcmp(eventRow[0], "ACTIVE") != 0)
 		{
-			sys_log(0,
-				"Festival: lista indisponivel. Estado atual: %s",
-				eventRow[0]);
-
 			std::vector<TMission> emptyMissions;
 
 			SendMissionPacket(
@@ -1546,9 +1600,6 @@ namespace Festival
 
 		if (!guild)
 		{
-			sys_log(0,
-				"Festival: personagem sem guilda solicitou missoes");
-
 			std::vector<TMission> emptyMissions;
 
 			SendMissionPacket(
@@ -1561,42 +1612,53 @@ namespace Festival
 		}
 
 		const DWORD guildID = guild->GetID();
+		const DWORD playerID = ch->GetPlayerID();
 
 		// 4. Carregar missoes do ciclo atual.
+		//
+		// Os oito primeiros campos sao compativeis com ParseMissionRow().
+		// Os campos seguintes sao tratados separadamente abaixo.
 		auto pmsg = DBManager::instance().DirectQuery(
 			"SELECT "
-			"mission.template_id, "
-			"template.title, "
-			"template.description, "
-			"mission.points, "
-			"template.type, "
-			"template.target_vnum, "
-			"mission.target_count, "
-			"template.time_limit, "
-			"CASE mission.status "
-			"WHEN 'AVAILABLE' THEN 0 "
-			"WHEN 'IN_PROGRESS' THEN 1 "
-			"WHEN 'COMPLETED' THEN 2 "
-			"WHEN 'FAILED' THEN 3 "
-			"ELSE 255 "
-			"END, "
-			"mission.progress, "
-			"COALESCE( "
-			"GREATEST( "
-			"TIMESTAMPDIFF(SECOND, NOW(), mission.expires_at), 0 ), 0 ), "
-			"mission.player_id, "
-			"COALESCE(owner.name, '') "
-		"FROM srv1_player.festival_guild_mission AS mission "
-		"INNER JOIN srv1_player.festival_mission_template AS template "
-		"ON template.id = mission.template_id "
-		"LEFT JOIN srv1_player.player AS owner "
-		"ON owner.id = mission.player_id "
-		"WHERE mission.event_id = %u "
-		"AND mission.guild_id = %u "
-		"AND mission.cycle_id = "
-		"( SELECT current_cycle FROM srv1_player.festival_event WHERE id = %u ) "
-		"ORDER BY mission.id "
-		"LIMIT 5 "
+				"mission.template_id, "
+				"template.title, "
+				"template.description, "
+				"mission.points, "
+				"template.type, "
+				"template.target_vnum, "
+				"mission.target_count, "
+				"template.time_limit, "
+				"CASE mission.status "
+					"WHEN 'AVAILABLE' THEN 0 "
+					"WHEN 'IN_PROGRESS' THEN 1 "
+					"WHEN 'COMPLETED' THEN 2 "
+					"WHEN 'FAILED' THEN 3 "
+					"ELSE 255 "
+				"END, "
+				"mission.progress, "
+				"GREATEST("
+					"COALESCE("
+						"TIMESTAMPDIFF("
+							"SECOND, NOW(), mission.expires_at"
+						"), 0"
+					"), 0"
+				"), "
+				"mission.player_id, "
+				"COALESCE(owner.name, '') "
+			"FROM srv1_player.festival_guild_mission AS mission "
+			"INNER JOIN srv1_player.festival_mission_template AS template "
+				"ON template.id = mission.template_id "
+			"LEFT JOIN srv1_player.player AS owner "
+				"ON owner.id = mission.player_id "
+			"WHERE mission.event_id = %u "
+				"AND mission.guild_id = %u "
+				"AND mission.cycle_id = ("
+					"SELECT current_cycle "
+					"FROM srv1_player.festival_event "
+					"WHERE id = %u"
+				") "
+			"ORDER BY mission.id "
+			"LIMIT 5",
 			FESTIVAL_EVENT_ID,
 			guildID,
 			FESTIVAL_EVENT_ID
@@ -1618,37 +1680,81 @@ namespace Festival
 		{
 			TMission mission;
 
-			if (!ParseMissionRow(row, mission) || !row[8])
+			// 5. Converter os campos basicos.
+			if (!ParseMissionRow(row, mission))
 			{
 				sys_err(
-					"Festival: atribuicao invalida ignorada para guilda %u",
+					"Festival: dados basicos invalidos para guilda %u",
+					guildID
+				);
+				continue;
+			}
+
+			// 6. Validar os campos adicionais.
+			//
+			// Indices:
+			// 8  = status
+			// 9  = progress
+			// 10 = remaining_time
+			// 11 = player_id
+			// 12 = player_name
+
+			if (!row[8] || !row[9] || !row[10])
+			{
+				sys_err(
+					"Festival: dados adicionais incompletos para guilda %u",
 					guildID
 				);
 				continue;
 			}
 
 			str_to_number(mission.status, row[8]);
+			str_to_number(mission.progress, row[9]);
+			str_to_number(mission.remaining_time, row[10]);
 
+			if (row[11] && row[11][0] != '\0')
+				str_to_number(mission.player_id, row[11]);
+
+			if (row[12])
+				mission.player_name = row[12];
+
+			// 7. Validar status.
 			if (mission.status > FEST_MISSION_FAILED)
 			{
 				sys_err(
-					"Festival: status de missao invalido ignorado para guilda %u",
+					"Festival: status de missao invalido para guilda %u",
 					guildID
 				);
 				continue;
 			}
 
+			// 8. Identificar se a missao pertence ao solicitante.
+			mission.is_owner =
+				mission.player_id != 0 &&
+				mission.player_id == playerID;
+
+			// 9. Proteger o progresso contra valores incoerentes.
+			if (mission.progress > static_cast<DWORD>(mission.target_count))
+			{
+				sys_err(
+					"Festival: progresso excede alvo. Guilda %u, missao %d",
+					guildID,
+					mission.id
+				);
+
+				mission.progress = static_cast<DWORD>(mission.target_count);
+			}
+
 			missions.push_back(mission);
 		}
 
-		// 5. Enviar ACTIVE mesmo quando nao houver missoes.
+		// 10. Enviar lista ativa, mesmo quando estiver vazia.
 		SendMissionPacket(
 			d,
 			missions,
 			FESTIVAL_LIST_ACTIVE
 		);
 	}
-
 	
 	bool StartEvent(DWORD cycleDurationMinutes)
 	{
@@ -2075,6 +2181,7 @@ namespace Festival
 			return;
 		}
 		
+		SendMissionProgress(ch, missionID);
 		SendGuildState(ch);
 		
 		sys_log(
@@ -2201,7 +2308,7 @@ namespace Festival
 				sys_err("Festival: erro ao confirmar progresso da missao");
 				return;
 			}
-
+			SendMissionProgress(ch, missionID);
 			return;
 		}
 
@@ -2265,6 +2372,7 @@ namespace Festival
 			return;
 		}
 		
+		SendMissionProgress(ch, missionID);
 		SendGuildState(ch);
 		
 		sys_log(0,
@@ -2530,7 +2638,7 @@ namespace Festival
 				sys_err("Festival: erro ao confirmar progresso da missao");
 				return;
 			}
-
+			SendMissionProgress(killer, missionID);
 			return;
 		}
 
@@ -2590,7 +2698,7 @@ namespace Festival
 			sys_err("FESTIVAL PVP: erro ao confirmar missao");
 			return;
 		}
-
+		SendMissionProgress(killer, missionID);
 		SendGuildState(killer);
 		
 		sys_log(0,
@@ -2728,7 +2836,7 @@ namespace Festival
 				sys_err("Festival: erro ao confirmar progresso da missao");
 				return;
 			}
-
+			SendMissionProgress(ch, missionID);
 			return;
 		}
 
@@ -2792,7 +2900,7 @@ namespace Festival
 			sys_err("Festival: erro ao confirmar missao de coleta");
 			return;
 		}
-		
+		SendMissionProgress(ch, missionID);
 		SendGuildState(ch);
 		
 		sys_log(0,

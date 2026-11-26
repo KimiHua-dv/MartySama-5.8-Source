@@ -4975,21 +4975,25 @@ bool CPythonNetworkStream::RecvFestivalPacket()
 				reinterpret_cast<TFestivalMissionPacket*>(
 					vecBuffer.data() + readPoint
 					);
-			Py_BuildValue(
-				"(issiiiiiiiisi)",
-				static_cast<int>(mission->id),
-				mission->title,
-				mission->description,
-				static_cast<int>(mission->points),
-				static_cast<int>(mission->type),
-				static_cast<int>(mission->target_vnum),
-				static_cast<int>(mission->target_count),
-				static_cast<int>(mission->time_limit),
-				static_cast<int>(mission->status),
-				static_cast<int>(mission->progress),
-				static_cast<int>(mission->remaining_time),
-				mission->player_name,
-				static_cast<int>(mission->is_owner)
+			PyCallClassMemberFunc(
+				m_apoPhaseWnd[PHASE_WINDOW_GAME],
+				"AppendFestivalMission",
+				Py_BuildValue(
+					"(issiiiiiiiisi)",
+					static_cast<int>(mission->id),
+					mission->title,
+					mission->description,
+					static_cast<int>(mission->points),
+					static_cast<int>(mission->type),
+					static_cast<int>(mission->target_vnum),
+					static_cast<int>(mission->target_count),
+					static_cast<int>(mission->time_limit),
+					static_cast<int>(mission->status),
+					static_cast<int>(mission->progress),
+					static_cast<int>(mission->remaining_time),
+					mission->player_name,
+					static_cast<int>(mission->is_owner)
+				)
 			);
 
 			readPoint += sizeof(TFestivalMissionPacket);
@@ -5031,6 +5035,41 @@ bool CPythonNetworkStream::RecvFestivalPacket()
 				static_cast<unsigned int>(guildState.pending_chest_1500),
 				static_cast<unsigned int>(guildState.pending_chest_2000),
 				static_cast<unsigned int>(guildState.accepted_missions)
+			)
+		);
+	}
+	break;
+
+	case FEST_GC_MISSION_UPDATE:
+	{
+		if (vecBuffer.size() != sizeof(TPacketGCFestivalMissionUpdate))
+		{
+			TraceError("FESTIVAL: tamanho invalido para atualizacao de missao");
+			return false;
+		}
+
+		TPacketGCFestivalMissionUpdate update;
+
+		memcpy(
+			&update,
+			vecBuffer.data(),
+			sizeof(TPacketGCFestivalMissionUpdate)
+		);
+
+		if (update.status > FEST_MISSION_FAILED)
+		{
+			TraceError("FESTIVAL: status invalido na atualizacao de missao");
+			return false;
+		}
+
+		PyCallClassMemberFunc(
+			m_apoPhaseWnd[PHASE_WINDOW_GAME],
+			"UpdateFestivalMissionProgress",
+			Py_BuildValue(
+				"(iii)",
+				static_cast<int>(update.template_id),
+				static_cast<int>(update.progress),
+				static_cast<int>(update.status)
 			)
 		);
 	}

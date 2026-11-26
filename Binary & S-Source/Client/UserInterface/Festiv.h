@@ -17,8 +17,18 @@ enum EFestivalGuildSubHeader
 	FEST_GC_MISSION_LIST,
 	FEST_CG_ACCEPT_MISSION,
 	FEST_GC_GUILD_STATE,
-	FEST_CG_CLAIM_PENDING
+	FEST_CG_CLAIM_PENDING,
+	FEST_GC_MISSION_UPDATE
 };
+
+#pragma pack(push, 1)
+typedef struct SFestivalMissionUpdatePacket
+{
+	DWORD template_id;
+	DWORD progress;
+	BYTE status;
+} TPacketGCFestivalMissionUpdate;
+#pragma pack(pop)
 
 enum EFestivalMissionStatus
 {

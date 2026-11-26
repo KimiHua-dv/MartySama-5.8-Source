@@ -184,14 +184,19 @@ Próximas prioridades de desenvolvimento:
 -Informações detalhadas das missões aceitas:
 Exibir o progresso atual e o tempo restante em cada missão aceita.(concluido)
 Quando a missão estiver ocupada por outro jogador, substituir o texto genérico "Em curso" pelo nome do jogador responsável.
-Para o próprio jogador, apresentar seu progresso e tempo restante.(em andamento)
-Manter a validação e a autoridade do estado no servidor.
--Painel Informações:
+Para o próprio jogador, apresentar seu progresso e tempo restante.(concluido)
+Manter a validação e a autoridade do estado no servidor.(concluido)
+-Painel Informações(prioridade):
 Exibir a contribuição individual do jogador.
 Exibir sua posição na guilda.
 Exibir o total de renovações.
 Exibir o tempo restante até a próxima renovação automática.
 Atualizar os dados conforme o estado real do servidor.
+
+-Renovação de Missoes:
+somente lider da guilda é autorizado
+custo: 300.000 gold retirado do banco da guilda.
+limite de 2 renovaçoes por ciclo.
 
 Pendências posteriores à interface:
 Revisar FinalizeFestivalEvent() e confirmar sua implementação.(concluido)

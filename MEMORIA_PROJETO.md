@@ -28,8 +28,9 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 - **Concluído:** interface central — lista de missões, recompensas, cinco baús, contadores individuais, barra de pontos compartilhada, indicador de missões aceitas por membro e tooltips.
 - **Concluído:**  ciclo completo de encerramento do evento, incluindo `FinalizeFestivalEvent()`, integração dos três caminhos e validação de `StartEvent()`.
 - **Concluído:**  progresso e tempo restante das missões aceitas; exibir o nome do jogador responsável quando outro membro aceitar uma missão.
-- **Próxima prioridade 1:** adicionar atualização automatica de progresso para cada missão.
-- **Próxima prioridade 2:** painel Informações com contribuição individual, posição na guilda, total de renovações e contagem regressiva para a próxima renovação automática.
+- **Concluído:** adicionar atualização automatica de progresso para cada missão.
+- **Próxima prioridade 1:** painel Informações com contribuição individual, posição na guilda, total de renovações e contagem regressiva para a próxima renovação automática.
+- **Próxima prioridade 2:** implementar renovação de missoes pelo lider da guilda custando 300.000 gold da guilda.
 - **concluido:** validar protocolo de disponibilidade da lista (`FESTIVAL_LIST_ACTIVE/UNAVAILABLE`) e testar o ciclo completo entre encerramento, histórico e nova edição.
 - **Futuro:** painel histórico de edições.
 
@@ -83,3 +84,11 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 - Decisões: cronômetro visual local; servidor continua sendo a autoridade sobre expiração.
 - Compilou/testou na VM: não aplicável ao Python do cliente; sintaxe validada, teste no cliente pendente.
 - Próximo passo: testar a contagem regressiva no cliente e depois implementar atualização automática do progresso.
+
+### Atualização da memória — 2026-11-26
+- Feito: corrigido o envio da atualização de progresso após o COMMIT em OnMetinKilled() e ajustada a consulta de SendMissionProgress() para distinguir mission.id de mission.template_id.
+- Confirmado na source: o cliente já possuía o caminho de recebimento e atualização visual.
+- Proposta (não verificada/compilada): nenhuma alteração adicional nesta etapa.
+- Decisões: manter a atualização incremental, sem reconstruir toda a janela.
+- Compilou/testou na VM: teste funcional confirmado pelo usuário; compilação na VM.
+- confimado: conclusão da missão, atribuição de pontos e atualização do estado dos baús.
