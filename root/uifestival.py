@@ -1,7 +1,119 @@
-import ui, chat, guild, net, uitooltip
+import app, ui, chat, guild, net, uitooltip
 
 FESTIVAL_LIST_ACTIVE = 0
 FESTIVAL_LIST_UNAVAILABLE = 1
+
+
+class FestivalMissionItem(ui.ListBoxEx.Item):
+	def __init__(self, festival, mission):
+		ui.ListBoxEx.Item.__init__(self)
+		self.children = []
+
+		self.card = ui.ThinBoardCircle()
+		self.card.SetParent(self)
+		self.card.SetPosition(0, 0)
+		self.card.SetSize(332, 88)
+		self.card.Show()
+
+		iconBoard = ui.ThinBoardCircle()
+		iconBoard.SetParent(self.card)
+		iconBoard.SetSize(42, 42)
+		iconBoard.SetPosition(5, 22)
+		iconBoard.Show()
+		self.children.append(iconBoard)
+
+		image = ui.ExpandedImageBox()
+		image.SetParent(iconBoard)
+		image.SetPosition(1, 1)
+		missionType = mission["type"]
+		if missionType == 1:
+			image.LoadImage("bl_teleport/mobs/8003.tga")
+		elif missionType == 2:
+			image.LoadImage("bl_teleport/mobs/2414.tga")
+		elif missionType == 3:
+			image.LoadImage("bl_teleport/mobs/pvp.tga")
+		elif missionType == 4:
+			image.LoadImage("icon/auto_1.tga")
+		iw, ih = image.GetWidth(), image.GetHeight()
+		if iw > 0 and ih > 0:
+			image.SetScale(40.0 / iw, 40.0 / ih)
+		image.Show()
+		self.children.append(image)
+
+		def AddText(y, value, width=195):
+			line = ui.TextLine()
+			line.SetParent(self.card)
+			line.SetPosition(55, y)
+			line.SetText(value)
+			line.SetLimitWidth(width)
+			line.Show()
+			self.children.append(line)
+			return line
+
+		AddText(5, mission["title"])
+		AddText(20, mission["description"])
+		AddText(36, "%d pontos | Objetivo: %d | Limite: %d min" % (
+			mission["points"], mission["target_count"], mission["time_limit"] // 60
+		))
+
+		self.progress = int(mission["progress"])
+		self.targetCount = int(mission["target_count"])
+		self.hasCountdown = (mission["status"] == 1)
+		self.endTime = app.GetTime() + max(0, int(mission["remaining_time"]))
+
+		self.progressTimerText = AddText(52, "")
+		self.lastDisplayedSecond = None
+		self.UpdateTimer(app.GetTime())
+
+		playerName = mission["player_name"] or ""
+		if mission["is_owner"]:
+			responsible = "Voce"
+		elif playerName:
+			responsible = playerName
+		else:
+			responsible = "Nao atribuida"
+		AddText(68, "Responsavel: %s" % responsible)
+
+		statusLabels = {0: "Disponivel", 1: "Em curso", 2: "Concluida", 3: "Falhou"}
+		status = ui.TextLine()
+		status.SetParent(self.card)
+		status.SetPosition(258, 7)
+		status.SetHorizontalAlignCenter()
+		status.SetLimitWidth(68)
+		status.SetText(statusLabels.get(mission["status"], "Indisp."))
+		status.Show()
+		self.children.append(status)
+
+		if mission["status"] == 0:
+			self.acceptButton = ui.Button()
+			self.acceptButton.SetParent(self.card)
+			self.acceptButton.SetUpVisual("d:/ymir work/ui/public/small_button_01.sub")
+			self.acceptButton.SetOverVisual("d:/ymir work/ui/public/small_button_02.sub")
+			self.acceptButton.SetDownVisual("d:/ymir work/ui/public/small_button_03.sub")
+			self.acceptButton.SetEvent(ui.__mem_func__(festival.AcceptMission), mission["id"])
+			self.acceptButton.SetPosition(263, 38)
+			self.acceptButton.SetText("Aceitar")
+			self.acceptButton.Show()
+			self.children.append(self.acceptButton)
+
+
+	def UpdateTimer(self, currentTime):
+		if self.hasCountdown:
+			remaining = max(0, int(self.endTime - currentTime))
+			if remaining == self.lastDisplayedSecond:
+				return
+			self.lastDisplayedSecond = remaining
+			remainingText = "%02d:%02d" % (remaining // 60, remaining % 60)
+		else:
+			if self.lastDisplayedSecond == -1:
+				return
+			self.lastDisplayedSecond = -1
+			remainingText = "--:--"
+
+		self.progressTimerText.SetText("Progresso: %d/%d | Restante: %s" % (
+			self.progress, self.targetCount, remainingText
+		))
+
 
 class Festival(ui.ScriptWindow):
 	def __init__(self):
@@ -29,6 +141,17 @@ class Festival(ui.ScriptWindow):
 
 		self.board = self.GetChild("board")
 		self.painel_missoes = self.GetChild("painel_central")
+		# Reutilizar a barra declarada no uiscript/festival.py.
+		self.missionScrollBar = self.GetChild("mission_scrollbar")
+		self.missionListBox = ui.ListBoxEx()
+		self.missionListBox.SetParent(self.painel_missoes)
+		self.missionListBox.SetPosition(8, 28)
+		self.missionListBox.SetViewItemCount(3)
+		self.missionListBox.SetItemStep(92)
+		self.missionListBox.SetItemSize(332, 88)
+		self.missionListBox.SetScrollBar(self.missionScrollBar)
+		self.missionListBox.Show()
+		self.missionScrollBar.Hide()
 		self.board.SetCloseEvent(ui.__mem_func__(self.Close))
 		self.mission = self.GetChild("btn_m")
 		self.mission.SetEvent(ui.__mem_func__(self.ReloadMissionVisuals))
@@ -113,8 +236,8 @@ class Festival(ui.ScriptWindow):
 		self.guildLevel.SetText("Nivel: %s" % guild_level)
 		self.guildPoint.SetText("Pontos: %s" % guild_points)
 	
-	def AppendFestivalMission(self, mission_id, title, description, points, mission_type, target_vnum, target_count, time_limit, status,progress,remaining_time,player_name,is_owner):
-		 mission = {
+	def AppendFestivalMission(self, mission_id, title, description, points,mission_type, target_vnum, target_count,time_limit, status, progress, remaining_time,player_name, is_owner):
+		mission = {
 			"id": int(mission_id),
 			"title": title,
 			"description": description,
@@ -131,7 +254,9 @@ class Festival(ui.ScriptWindow):
 		}
 
 		self.missions.append(mission)
-
+		chat.AppendChat(3, "[Festival] Missao recebida: %d | total: %d" % (
+			mission["id"], len(self.missions)
+		))
 		self.RefreshMissionList()
 
 	
@@ -143,141 +268,44 @@ class Festival(ui.ScriptWindow):
 
 		net.SendFestivalMissionAccept(mission_id)
 
-	def RefreshMissionList(self):
-		# Ocultar os cartões criados anteriormente.
-		for item in self.missionItems:
-			item.Hide()
 
-		self.missionItems = []
-		
-		# Ocultar mensagens anteriores.
+
+	def RefreshMissionList(self):
 		for message in self.statusMessages:
 			message.Hide()
 
-		# Evento encerrado ou em processamento.
+		self.missionListBox.RemoveAllItems()
+		self.missionItems = []
+
 		if self.listStatus == FESTIVAL_LIST_UNAVAILABLE:
+			self.missionScrollBar.Hide()
 			for message in self.statusMessages:
 				message.Show()
-
 			return
 
-		# Evento ativo, mas sem missoes.
 		if not self.missions:
+			self.missionScrollBar.Hide()
 			return
 
-		panelWidth = self.painel_missoes.GetWidth()
+		for mission in self.missions:
+			item = FestivalMissionItem(self, mission)
+			self.missionListBox.AppendItem(item)
+			self.missionItems.append(item)
 
-		# A barra "Missões" ocupa o topo do painel.
-		startY = 30
-		marginX = 8
-		rowHeight = 51
-		spacing = 5
-
-		maxVisible = 5
-
-		for index, mission in enumerate(self.missions[:maxVisible]):
-			card = ui.ThinBoardCircle()
-			card.SetParent(self.painel_missoes)
-			card.SetPosition(marginX, startY + index * (rowHeight + spacing))
-			card.SetSize(panelWidth - marginX * 2, rowHeight)
-			card.Show()
-
-			self.missionItems.append(card)
-			
-			board = ui.ThinBoardCircle()
-			board.SetParent(card)
-			board.SetSize(42, 42)
-			board.SetPosition(5, 5)
-			board.Show()
-			
-			image = ui.ExpandedImageBox()
-			image.SetParent(board)
-			image.SetPosition(1,1)
-			image_size = (40, 40)
-			
-			tipo = mission["type"]
-			if tipo == 1:
-				objetivo = "Metins"
-				image.LoadImage("bl_teleport/mobs/8003.tga")
-			elif tipo == 2:
-				objetivo = "Monstros"
-				image.LoadImage("bl_teleport/mobs/2414.tga")
-			elif tipo == 3:
-				objetivo = "PVP"
-				image.LoadImage("bl_teleport/mobs/pvp.tga")
-			elif tipo == 4:
-				objetivo = "Coletar Itens"
-				image.LoadImage("icon/auto_1.tga")
-			else:
-				objetivo = "Desconhecido"
-			image_width = image.GetWidth()
-			image_height = image.GetHeight()
-			if image_width > 0 and image_height > 0:
-				escala_x = image_size[0] / float(image_width)
-				escala_y = image_size[1] / float(image_height)
-				image.SetScale(escala_x, escala_y)
-			image.Show()
-				
-			# Título da missão.
-			title = ui.TextLine()
-			title.SetParent(card)
-			title.SetPosition(62, 4)
-			title.SetText(mission["title"])
-			title.SetLimitWidth(220)
-			title.Show()
-
-			# Descrição da missão.
-			description = ui.TextLine()
-			description.SetParent(card)
-			description.SetPosition(62, 19)
-			description.SetText(mission["description"])
-			description.SetLimitWidth(220)
-			description.Show()
-
-				
-						# Pontos e quantidade necessária.
-			info = ui.TextLine()
-			info.SetParent(card)
-			info.SetPosition(62, 34)
-			info.SetText(
-				"%d pontos  |  %s: %d  |  Tempo: %d min" % (
-					mission["points"],
-					objetivo,
-					mission["target_count"],
-					mission["time_limit"] // 60
-				)
+		if len(self.missions) > 3:
+			self.missionScrollBar.SetMiddleBarSize(
+				min(1.0, 3.0 / float(len(self.missions)))
 			)
-			info.SetLimitWidth(220)
-			info.Show()
+			self.missionScrollBar.Show()
+		else:
+			self.missionScrollBar.Hide()
 
-			# Botao de aceitar apenas para missoes ainda disponiveis.
-			if mission["status"] == 0:
-				acceptButton = ui.Button()
-				acceptButton.SetParent(card)
-				acceptButton.SetUpVisual("d:/ymir work/ui/public/small_button_01.sub")
-				acceptButton.SetOverVisual("d:/ymir work/ui/public/small_button_02.sub")
-				acceptButton.SetDownVisual("d:/ymir work/ui/public/small_button_03.sub")
-				acceptButton.SetEvent(ui.__mem_func__(self.AcceptMission), mission["id"])
-				acceptButton.SetPosition(card.GetWidth() - 58, 15)
-				acceptButton.SetText("Aceitar")
-				acceptButton.Show()
-				self.missionItems.append(acceptButton)
-			else:
-				statusText = ui.TextLine()
-				statusText.SetParent(card)
-				statusText.SetPosition(card.GetWidth() - 62, 20)
-				statusText.SetLimitWidth(58)
-				statusText.SetText({1: "Em curso", 2: "Feita", 3: "Falhou"}.get(mission["status"], "Indisp."))
-				statusText.Show()
-				self.missionItems.append(statusText)
+		self.missionScrollBar.SetPos(0)
 
-			# Manter referencias aos elementos de UI enquanto estiverem ativos.
-			# Inclui o botao ou o estado de cada missao.
-			self.missionItems.append(image)
-			self.missionItems.append(board)
-			self.missionItems.append(title)
-			self.missionItems.append(description)
-			self.missionItems.append(info)
+	def OnUpdate(self):
+		currentTime = app.GetTime()
+		for missionItem in self.missionItems:
+			missionItem.UpdateTimer(currentTime)
 
 	def CreateGuildGauge(self):
 		self.guildGauge = ui.Gauge()

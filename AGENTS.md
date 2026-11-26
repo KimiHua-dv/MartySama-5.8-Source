@@ -182,9 +182,9 @@ Interface central concluída. Não reabrir essa etapa sem identificar um problem
 Próximas prioridades de desenvolvimento:
 
 -Informações detalhadas das missões aceitas:
-Exibir o progresso atual e o tempo restante em cada missão aceita.
+Exibir o progresso atual e o tempo restante em cada missão aceita.(concluido)
 Quando a missão estiver ocupada por outro jogador, substituir o texto genérico "Em curso" pelo nome do jogador responsável.
-Para o próprio jogador, apresentar seu progresso e tempo restante.
+Para o próprio jogador, apresentar seu progresso e tempo restante.(em andamento)
 Manter a validação e a autoridade do estado no servidor.
 -Painel Informações:
 Exibir a contribuição individual do jogador.

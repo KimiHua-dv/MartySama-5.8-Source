@@ -185,7 +185,15 @@ window = {
 							"children" :
 							(
 								{ "name":"TitleName", "type":"text", "x":15, "y":0, "text":"Missões", "align":"center" },
+
 							),
+						},
+						{
+							"name": "mission_scrollbar",
+							"type": "scrollbar",
+							"x": 350,
+							"y": 26,
+							"size": 280,
 						},
 					),
 				},

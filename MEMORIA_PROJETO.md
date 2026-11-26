@@ -26,8 +26,9 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 - **Concluído:** distribuição de missões, hooks (Metin, monstro, PvP e coleta), progresso individual, expiração, pontuação coletiva, comando GM e `ProcessCycle()`.
 - **Concluído:** histórico de edições, encerramento manual testado e sistema de claims individuais dos baús com entrega idempotente.
 - **Concluído:** interface central — lista de missões, recompensas, cinco baús, contadores individuais, barra de pontos compartilhada, indicador de missões aceitas por membro e tooltips.
-- **Em andamento:** ciclo completo de encerramento do evento, incluindo `FinalizeFestivalEvent()`, integração dos três caminhos e validação de `StartEvent()`.
-- **Próxima prioridade 1:** progresso e tempo restante das missões aceitas; exibir o nome do jogador responsável quando outro membro aceitar uma missão.
+- **Concluído:**  ciclo completo de encerramento do evento, incluindo `FinalizeFestivalEvent()`, integração dos três caminhos e validação de `StartEvent()`.
+- **Concluído:**  progresso e tempo restante das missões aceitas; exibir o nome do jogador responsável quando outro membro aceitar uma missão.
+- **Próxima prioridade 1:** adicionar atualização automatica de progresso para cada missão.
 - **Próxima prioridade 2:** painel Informações com contribuição individual, posição na guilda, total de renovações e contagem regressiva para a próxima renovação automática.
 - **concluido:** validar protocolo de disponibilidade da lista (`FESTIVAL_LIST_ACTIVE/UNAVAILABLE`) e testar o ciclo completo entre encerramento, histórico e nova edição.
 - **Futuro:** painel histórico de edições.
@@ -74,3 +75,11 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 - Decisões: barra de progresso compartilhada, calculada pelos pontos da guilda; resgates e contadores dos baús continuam individuais.
 - Compilou/testou na VM: interface central testada visualmente pelo usuário; novas funcionalidades ainda não implementadas.
 - Próximo passo: 1. Implementar detalhes das missões aceitas. 2. Implementar o painel Informações.
+
+### 26/11/2026 — Festival de Guildas
+- Feito: cronômetro local nos cartões de missão, com OnUpdate() e app.GetTime(), em uiFestival.py.
+- Confirmado na source: padrão de contagem regressiva em root/uiautoban.py e root/uicommon.py.
+- Proposta (não verificada/compilada): atualização incremental do progresso das missões via servidor.
+- Decisões: cronômetro visual local; servidor continua sendo a autoridade sobre expiração.
+- Compilou/testou na VM: não aplicável ao Python do cliente; sintaxe validada, teste no cliente pendente.
+- Próximo passo: testar a contagem regressiva no cliente e depois implementar atualização automática do progresso.
