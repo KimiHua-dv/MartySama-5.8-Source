@@ -945,6 +945,21 @@ int CInputMain::FestivGuild(LPCHARACTER ch, const char* data)
 			Festival::SendGuildState(ch);
 		}
 		break;
+		
+		case FEST_CG_RENEW_MISSIONS:
+		{
+			const bool success = Festival::RenewGuildMissions(ch);
+
+			if (success)
+			{
+				// Envia as novas missoes para o solicitante.
+				Festival::SendMission(ch);
+			}
+
+			// Atualiza os dados apresentados no painel.
+			Festival::SendGuildState(ch);
+		}
+		break;
 
         default:
             sys_err("FestivGuild: subheader desconhecido %u",

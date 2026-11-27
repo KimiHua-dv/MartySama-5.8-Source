@@ -8,7 +8,9 @@ class FestivalMissionItem(ui.ListBoxEx.Item):
 	def __init__(self, festival, mission):
 		ui.ListBoxEx.Item.__init__(self)
 		self.children = []
-
+		
+		self.missionID = int(mission["id"])
+		
 		self.card = ui.ThinBoardCircle()
 		self.card.SetParent(self)
 		self.card.SetPosition(0, 0)
@@ -83,6 +85,7 @@ class FestivalMissionItem(ui.ListBoxEx.Item):
 		status.SetText(statusLabels.get(mission["status"], "Indisp."))
 		status.Show()
 		self.children.append(status)
+		self.statusText = status
 
 		if mission["status"] == 0:
 			self.acceptButton = ui.Button()
@@ -96,7 +99,25 @@ class FestivalMissionItem(ui.ListBoxEx.Item):
 			self.acceptButton.Show()
 			self.children.append(self.acceptButton)
 
+	def UpdateProgress(self, progress, status):
+		self.progress = int(progress)
 
+		statusLabels = {
+			0: "Disponivel",
+			1: "Em curso",
+			2: "Concluida",
+			3: "Falhou"
+		}
+
+		status = int(status)
+		self.statusText.SetText(statusLabels.get(status, "Indisp."))
+
+		if status != 1:
+			self.hasCountdown = False
+
+		self.lastDisplayedSecond = None
+		self.UpdateTimer(app.GetTime())
+		
 	def UpdateTimer(self, currentTime):
 		if self.hasCountdown:
 			remaining = max(0, int(self.endTime - currentTime))
@@ -132,6 +153,14 @@ class Festival(ui.ScriptWindow):
 		self.listStatus = FESTIVAL_LIST_ACTIVE
 
 		self.PendingChestCounts = [0, 0, 0, 0, 0]
+		
+		self.PersonalContribution = 0
+		self.ContributionRank = 0
+		self.RenewalCount = 0
+		self.NextRenewalSeconds = 0
+		self.NextRenewalEndTime = 0
+		self.lastRenewalSecond = None
+		
 
 		self.LoadWindow()
 
@@ -160,9 +189,17 @@ class Festival(ui.ScriptWindow):
 		self.guildPoint = self.GetChild("Pontos")
 		self.painel_progresso = self.GetChild("painel_lateral_d_1")
 		self.painel_MM = self.GetChild("painel_lateral_d_3")
+		self.painel_informacoes = self.GetChild("painel_lateral_d_4")
+		self.infoContribution = self.GetChild("info_contribution")
+		self.infoRank = self.GetChild("info_rank")
+		self.infoRenewals = self.GetChild("info_renewals")
+		self.infoNextRenewal = self.GetChild("info_next_renewal")
 		self.painel_reconpensa = self.GetChild("painel_central_baixo")
 		self.btn_resgate = self.GetChild("btn_resgate")
 		self.btn_resgate.SetEvent(ui.__mem_func__(self.RewardChest))
+		self.btn_renovar = self.GetChild("renovar")
+		self.btn_renovar.SetEvent(ui.__mem_func__(self.RenewMissions))
+
 		self.statusMessages = []
 
 		messages = [
@@ -188,6 +225,9 @@ class Festival(ui.ScriptWindow):
 		self.CreateMissionGauge()
 		self.CreateRewardGauge()
 
+	def RenewMissions(self):
+		net.SendFestivalRenewMissions()
+	
 	def SetFestivalListStatus(self, status):
 		self.listStatus = int(status)
 
@@ -306,6 +346,7 @@ class Festival(ui.ScriptWindow):
 		currentTime = app.GetTime()
 		for missionItem in self.missionItems:
 			missionItem.UpdateTimer(currentTime)
+		self.UpdateRenewalTimer(currentTime)
 
 	def CreateGuildGauge(self):
 		self.guildGauge = ui.Gauge()
@@ -368,7 +409,10 @@ class Festival(ui.ScriptWindow):
 		self.UpdateRewardGauge()
 		self.SetMilestone()
 
-	def UpdateGuildState(self,total_points,reward_progress,pending_points,claimed_chests,pending_200,pending_500,pending_1000,pending_1500,pending_2000,accepted_missions):
+	def UpdateGuildState(self,total_points,reward_progress,pending_points,claimed_chests,
+		pending_200,pending_500,pending_1000,pending_1500,pending_2000,
+		accepted_missions,personal_contribution,contribution_rank,renewal_count,next_renewal_seconds):
+
 		self.TotalPoints = int(total_points)
 		self.RewardProgress = int(reward_progress)
 		self.PendingPoints = int(pending_points)
@@ -381,14 +425,25 @@ class Festival(ui.ScriptWindow):
 			int(pending_1500),
 			int(pending_2000)
 		]
-		
+
 		self.AcceptedMissions = int(accepted_missions)
+
+		self.PersonalContribution = int(personal_contribution)
+		self.ContributionRank = int(contribution_rank)
+		self.RenewalCount = int(renewal_count)
+
+		self.NextRenewalSeconds = max(0, int(next_renewal_seconds))
+		self.NextRenewalEndTime = app.GetTime() + self.NextRenewalSeconds
+		self.lastRenewalSecond = None
 		
+		self.UpdateRenewalTimer(app.GetTime())
 		self.RefreshGuildInfos()
 		self.RefreshGuildProgress()
 		self.UpdateRewardGauge()
 		self.UpdateMileStone()
 		self.UpdateMemberMissionGauge()
+
+		self.RefreshFestivalInformation()
 		
 	def AddTestPoints(self, amount):
 		self.RewardProgress += amount
@@ -550,3 +605,43 @@ class Festival(ui.ScriptWindow):
 
 	def HideChestToolTip(self):
 		self.chestToolTip.HideToolTip()
+		
+	def UpdateMissionProgress(self, mission_id, progress, status):
+		mission_id = int(mission_id)
+		progress = int(progress)
+		status = int(status)
+
+		for mission in self.missions:
+			if mission["id"] == mission_id:
+				mission["progress"] = progress
+				mission["status"] = status
+				break
+		else:
+			return
+
+		for missionItem in self.missionItems:
+			if missionItem.missionID == mission_id:
+				missionItem.UpdateProgress(progress, status)
+				return
+				
+	def RefreshFestivalInformation(self):
+		self.infoContribution.SetText("Contribuição: %d pts" % self.PersonalContribution)
+		if self.ContributionRank > 0:
+			self.infoRank.SetText(
+				"Posicao: %d" % self.ContributionRank
+			)
+		else:
+			self.infoRank.SetText("Posição: -")
+		self.infoRenewals.SetText("Renovações: %d" % self.RenewalCount)
+		self.UpdateRenewalTimer(app.GetTime())
+
+	def UpdateRenewalTimer(self, currentTime):
+		remaining = max(0,int(self.NextRenewalEndTime - currentTime))
+		if remaining == self.lastRenewalSecond:
+			return
+		self.lastRenewalSecond = remaining
+		hours = remaining // 3600
+		minutes = (remaining % 3600) // 60
+		seconds = remaining % 60
+
+		self.infoNextRenewal.SetText("Proxima Renovação: %02d:%02d:%02d" % (hours,minutes,seconds))

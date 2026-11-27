@@ -939,6 +939,7 @@ namespace Festival
 				"ON event.id = guild.event_id "
 				"SET guild.next_renewal_at = event.cycle_ends_at, "
 				"guild.renewal_count = event.current_cycle - 1 "
+				"guild.manual_renewals = 0 "
 				"WHERE guild.event_id = %u "
 				"AND event.current_cycle = %u "
 				"AND event.status = 'ACTIVE'",
@@ -1479,9 +1480,9 @@ namespace Festival
 		return true;
 	}
 	
-	void SendMissionProgress(LPCHARACTER ch, DWORD templateID)
+	void SendMissionProgress(LPCHARACTER ch, DWORD missionID)
 	{
-		if (!ch || !ch->IsPC() || templateID == 0)
+		if (!ch || !ch->IsPC() || missionID == 0)
 			return;
 
 		CGuild* guild = ch->GetGuild();
@@ -1491,6 +1492,7 @@ namespace Festival
 
 		auto msg = DBManager::instance().DirectQuery(
 			"SELECT "
+			"mission.template_id, "
 			"mission.progress, "
 			"CASE mission.status "
 			"WHEN 'AVAILABLE' THEN 0 "
@@ -1501,14 +1503,14 @@ namespace Festival
 			"FROM srv1_player.festival_guild_mission AS mission "
 			"INNER JOIN srv1_player.festival_event AS event "
 			"ON event.id = mission.event_id "
-			"WHERE mission.event_id = %u "
+			"WHERE mission.id = %u "
+			"AND mission.event_id = %u "
 			"AND mission.guild_id = %u "
-			"AND mission.template_id = %u "
 			"AND mission.cycle_id = event.current_cycle "
 			"LIMIT 1",
+			missionID,
 			FESTIVAL_EVENT_ID,
-			guild->GetID(),
-			templateID
+			guild->GetID()
 		);
 
 		SQLResult* result = GetSelectResult(
@@ -1521,7 +1523,7 @@ namespace Festival
 
 		MYSQL_ROW row = mysql_fetch_row(result->pSQLResult);
 
-		if (!row || !row[0] || !row[1])
+		if (!row || !row[0] || !row[1] || !row[2])
 			return;
 
 		TPacketGCFestival header = {};
@@ -1530,9 +1532,9 @@ namespace Festival
 		header.subheader = FEST_GC_MISSION_UPDATE;
 
 		TPacketGCFestivalMissionUpdate payload = {};
-		str_to_number(payload.progress, row[0]);
-		str_to_number(payload.status, row[1]);
-		payload.template_id = templateID;
+		str_to_number(payload.template_id, row[0]);
+		str_to_number(payload.progress, row[1]);
+		str_to_number(payload.status, row[2]);
 
 		guild->Packet(&header, sizeof(header));
 		guild->Packet(&payload, sizeof(payload));
@@ -2111,7 +2113,7 @@ namespace Festival
 				sys_err("Festival: erro ao confirmar progresso da missao de metin");
 				return;
 			}
-
+			SendMissionProgress(ch, missionID);
 			return;
 		}
 
@@ -3140,9 +3142,105 @@ namespace Festival
 			payload.accepted_missions,
 			memberMissionRow[0]
 		);
+		
+		        // ---------------------------------------------------------
+        // 4. Informacoes individuais e renovacao da guilda.
+        // ---------------------------------------------------------
 
+        auto infoMsg = DBManager::instance().DirectQuery(
+		"SELECT "
+			"COALESCE(guild.renewal_count, 0), "
+			"COALESCE(GREATEST(0, "
+				"TIMESTAMPDIFF(SECOND, NOW(), guild.next_renewal_at)"
+			"), 0), "
+
+			// Contribuicao individual.
+			"COALESCE(("
+				"SELECT SUM(myMission.points) "
+				"FROM srv1_player.festival_guild_mission AS myMission "
+				"WHERE myMission.event_id = guild.event_id "
+				"AND myMission.guild_id = guild.guild_id "
+				"AND myMission.player_id = %u "
+				"AND myMission.status = 'COMPLETED' "
+				"AND myMission.points_awarded = 1"
+			"), 0), "
+
+			// Posicao no ranking da guilda.
+			// Empates recebem a mesma posicao.
+			"CASE WHEN COALESCE(("
+				"SELECT SUM(myMission.points) "
+				"FROM srv1_player.festival_guild_mission AS myMission "
+				"WHERE myMission.event_id = guild.event_id "
+				"AND myMission.guild_id = guild.guild_id "
+				"AND myMission.player_id = %u "
+				"AND myMission.status = 'COMPLETED' "
+				"AND myMission.points_awarded = 1"
+			"), 0) = 0 THEN 0 "
+			"ELSE 1 + ("
+				"SELECT COUNT(DISTINCT otherMission.player_id) "
+				"FROM srv1_player.festival_guild_mission AS otherMission "
+				"WHERE otherMission.event_id = guild.event_id "
+				"AND otherMission.guild_id = guild.guild_id "
+				"AND otherMission.status = 'COMPLETED' "
+				"AND otherMission.points_awarded = 1 "
+				"AND otherMission.player_id IS NOT NULL "
+				"AND ("
+					"SELECT COALESCE(SUM(otherPoints.points), 0) "
+					"FROM srv1_player.festival_guild_mission AS otherPoints "
+					"WHERE otherPoints.event_id = guild.event_id "
+					"AND otherPoints.guild_id = guild.guild_id "
+					"AND otherPoints.player_id = otherMission.player_id "
+					"AND otherPoints.status = 'COMPLETED' "
+					"AND otherPoints.points_awarded = 1"
+				") > ("
+					"SELECT COALESCE(SUM(myPoints.points), 0) "
+					"FROM srv1_player.festival_guild_mission AS myPoints "
+					"WHERE myPoints.event_id = guild.event_id "
+					"AND myPoints.guild_id = guild.guild_id "
+					"AND myPoints.player_id = %u "
+					"AND myPoints.status = 'COMPLETED' "
+					"AND myPoints.points_awarded = 1"
+				")"
+			") END "
+
+		"FROM srv1_player.festival_guild_state AS guild "
+		"WHERE guild.event_id = %u "
+		"AND guild.guild_id = %u "
+		"LIMIT 1",
+		playerID,
+		playerID,
+		playerID,
+		FESTIVAL_EVENT_ID,
+		guildID
+	);
+
+        SQLResult* infoResult = GetSelectResult(
+            infoMsg,
+            "consultar informacoes individuais do festival"
+        );
+
+        if (!infoResult)
+            return;
+
+        MYSQL_ROW infoRow = mysql_fetch_row(infoResult->pSQLResult);
+
+        if (!infoRow)
+        {
+            sys_err(
+                "Festival: informacoes individuais nao encontradas "
+                "para jogador %u",
+                playerID
+            );
+            return;
+        }
+
+        str_to_number(payload.renewal_count, infoRow[0]);
+        str_to_number(payload.next_renewal_seconds, infoRow[1]);
+        str_to_number(payload.personal_contribution, infoRow[2]);
+        str_to_number(payload.contribution_rank, infoRow[3]);
+		
 		// ---------------------------------------------------------
-		// 4. Envia o pacote.
+		// 5. Envia o pacote.
 		// ---------------------------------------------------------
 
 		TPacketGCFestival header = {};
@@ -4116,5 +4214,378 @@ namespace Festival
 		return true;
 	}
 
+	bool RenewGuildMissions(LPCHARACTER ch)
+	{
+		const DWORD RENEWAL_COST = 300000;
+		const BYTE MAX_MANUAL_RENEWALS = 2;
+
+		if (!ch || !ch->GetDesc())
+			return false;
+
+		CGuild* guild = ch->GetGuild();
+
+		if (!guild)
+		{
+			ch->ChatPacket(
+				CHAT_TYPE_INFO,
+				"Voce precisa pertencer a uma guilda."
+			);
+			return false;
+		}
+
+		const DWORD guildID = guild->GetID();
+		const DWORD playerID = ch->GetPlayerID();
+
+		// Somente o lider pode renovar.
+		if (playerID != guild->GetMasterPID())
+		{
+			ch->ChatPacket(
+				CHAT_TYPE_INFO,
+				"Somente o lider da guilda pode renovar as missoes."
+			);
+			return false;
+		}
+
+		if (quest::CQuestManager::instance().GetEventFlag("festival_guild") == 0)
+		{
+			ch->ChatPacket(
+				CHAT_TYPE_INFO,
+				"O Festival de Guildas nao esta ativo."
+			);
+			return false;
+		}
+
+		if (guildID == 0 || playerID == 0)
+			return false;
+
+		DBManager& db = DBManager::instance();
+
+		// Carrega e sorteia as novas missoes antes de iniciar a transacao.
+		std::vector<TMission> catalog;
+		std::vector<TMission> selected;
+
+		if (!LoadMissionCatalog(catalog))
+		{
+			ch->ChatPacket(
+				CHAT_TYPE_INFO,
+				"Nao foi possivel carregar o catalogo de missoes."
+			);
+			return false;
+		}
+
+		SelectRandomMissions(catalog, selected);
+
+		if (selected.size() != FESTIVAL_MAX_MISSIONS)
+		{
+			ch->ChatPacket(
+				CHAT_TYPE_INFO,
+				"O catalogo nao possui missoes suficientes para renovacao."
+			);
+			return false;
+		}
+
+		// Impede concorrencia com a distribuicao automatica.
+		CFestivalDistributionLock distributionLock;
+
+		if (!distributionLock.Acquire(FESTIVAL_EVENT_ID))
+		{
+			ch->ChatPacket(
+				CHAT_TYPE_INFO,
+				"Aguarde. As missoes estao sendo atualizadas."
+			);
+			return false;
+		}
+
+		auto transactionMsg = db.DirectQuery("START TRANSACTION");
+
+		if (!transactionMsg || transactionMsg->uiSQLErrno != 0)
+		{
+			ch->ChatPacket(
+				CHAT_TYPE_INFO,
+				"Nao foi possivel iniciar a renovacao."
+			);
+			return false;
+		}
+
+		// Toda falha depois deste ponto deve desfazer a operacao.
+		const auto rollback = [&db]() -> bool
+		{
+			db.DirectQuery("ROLLBACK");
+			return false;
+		};
+
+		// 1. Bloqueia e consulta o ciclo atual.
+		auto eventMsg = db.DirectQuery(
+			"SELECT current_cycle "
+			"FROM srv1_player.festival_event "
+			"WHERE id = %u "
+			"AND status = 'ACTIVE' "
+			"LIMIT 1 FOR UPDATE",
+			FESTIVAL_EVENT_ID
+		);
+
+		SQLResult* eventResult = GetSelectResult(
+			eventMsg,
+			"consultar ciclo da renovacao manual"
+		);
+
+		if (!eventResult)
+			return rollback();
+
+		MYSQL_ROW eventRow = mysql_fetch_row(eventResult->pSQLResult);
+
+		if (!eventRow || !eventRow[0])
+			return rollback();
+
+		DWORD currentCycle = 0;
+		str_to_number(currentCycle, eventRow[0]);
+
+		if (currentCycle == 0)
+			return rollback();
+
+		// 2. Bloqueia o estado da guilda e consulta o limite.
+		auto stateMsg = db.DirectQuery(
+			"SELECT manual_renewals "
+			"FROM srv1_player.festival_guild_state "
+			"WHERE event_id = %u "
+			"AND guild_id = %u "
+			"LIMIT 1 FOR UPDATE",
+			FESTIVAL_EVENT_ID,
+			guildID
+		);
+
+		SQLResult* stateResult = GetSelectResult(
+			stateMsg,
+			"consultar renovacoes manuais da guilda"
+		);
+
+		if (!stateResult)
+			return rollback();
+
+		MYSQL_ROW stateRow = mysql_fetch_row(stateResult->pSQLResult);
+
+		if (!stateRow || !stateRow[0])
+			return rollback();
+
+		DWORD manualRenewals = 0;
+		str_to_number(manualRenewals, stateRow[0]);
+
+		if (manualRenewals >= MAX_MANUAL_RENEWALS)
+		{
+			rollback();
+
+			ch->ChatPacket(
+				CHAT_TYPE_INFO,
+				"Sua guilda ja utilizou as duas renovacoes deste ciclo."
+			);
+
+			return false;
+		}
+
+		// 3. Todas as cinco missoes precisam estar concluidas.
+		auto missionCheckMsg = db.DirectQuery(
+			"SELECT "
+				"COUNT(*), "
+				"COALESCE(SUM(status = 'COMPLETED'), 0) "
+			"FROM srv1_player.festival_guild_mission "
+			"WHERE event_id = %u "
+			"AND guild_id = %u "
+			"AND cycle_id = %u",
+			FESTIVAL_EVENT_ID,
+			guildID,
+			currentCycle
+		);
+
+		SQLResult* missionCheckResult = GetSelectResult(
+			missionCheckMsg,
+			"verificar conclusao das missoes para renovacao"
+		);
+
+		if (!missionCheckResult)
+			return rollback();
+
+		MYSQL_ROW missionCheckRow =
+			mysql_fetch_row(missionCheckResult->pSQLResult);
+
+		if (!missionCheckRow ||
+			!missionCheckRow[0] ||
+			!missionCheckRow[1])
+		{
+			return rollback();
+		}
+
+		DWORD missionCount = 0;
+		DWORD completedCount = 0;
+
+		str_to_number(missionCount, missionCheckRow[0]);
+		str_to_number(completedCount, missionCheckRow[1]);
+
+		if (missionCount != FESTIVAL_MAX_MISSIONS ||
+			completedCount != FESTIVAL_MAX_MISSIONS)
+		{
+			rollback();
+
+			ch->ChatPacket(
+				CHAT_TYPE_INFO,
+				"Todas as cinco missoes precisam estar concluidas."
+			);
+
+			return false;
+		}
+
+		// 4. Desconta o dinheiro diretamente do banco da guilda.
+		// O WHERE impede saldo negativo e torna o desconto atomico.
+		auto moneyMsg = db.DirectQuery(
+			"UPDATE srv1_player.guild "
+			"SET gold = gold - %u "
+			"WHERE id = %u "
+			"AND gold >= %u",
+			RENEWAL_COST,
+			guildID,
+			RENEWAL_COST
+		);
+
+		if (!moneyMsg ||
+			moneyMsg->uiSQLErrno != 0 ||
+			!moneyMsg->Get())
+		{
+			sys_err(
+				"Festival: erro ao descontar Gold da guilda %u",
+				guildID
+			);
+			return rollback();
+		}
+
+		if (moneyMsg->Get()->uiAffectedRows != 1)
+		{
+			rollback();
+
+			ch->ChatPacket(
+				CHAT_TYPE_INFO,
+				"A guilda nao possui Gold suficiente. Custo: 300.000."
+			);
+
+			return false;
+		}
+
+		// 5. Recupera o novo saldo para atualizar a memoria da CGuild.
+		auto balanceMsg = db.DirectQuery(
+			"SELECT gold "
+			"FROM srv1_player.guild "
+			"WHERE id = %u "
+			"LIMIT 1",
+			guildID
+		);
+
+		SQLResult* balanceResult = GetSelectResult(
+			balanceMsg,
+			"consultar saldo da guilda apos renovacao"
+		);
+
+		if (!balanceResult)
+			return rollback();
+
+		MYSQL_ROW balanceRow = mysql_fetch_row(balanceResult->pSQLResult);
+
+		if (!balanceRow || !balanceRow[0])
+			return rollback();
+
+		int newGuildGold = 0;
+		str_to_number(newGuildGold, balanceRow[0]);
+
+		// 6. Arquiva as missoes concluidas sem apagar seu historico.
+		// cycle_id = 0 impede que aparecam na lista do ciclo atual.
+		// Os registros continuam disponiveis para o ranking individual.
+		auto archiveMsg = db.DirectQuery(
+			"UPDATE srv1_player.festival_guild_mission "
+			"SET cycle_id = 0 "
+			"WHERE event_id = %u "
+			"AND guild_id = %u "
+			"AND cycle_id = %u "
+			"AND status = 'COMPLETED'",
+			FESTIVAL_EVENT_ID,
+			guildID,
+			currentCycle
+		);
+
+		if (!archiveMsg ||
+			archiveMsg->uiSQLErrno != 0 ||
+			!archiveMsg->Get() ||
+			archiveMsg->Get()->uiAffectedRows != FESTIVAL_MAX_MISSIONS)
+		{
+			sys_err(
+				"Festival: falha ao arquivar missoes da guilda %u",
+				guildID
+			);
+			return rollback();
+		}
+
+		// 7. Registra a renovacao manual.
+		auto renewalMsg = db.DirectQuery(
+			"UPDATE srv1_player.festival_guild_state "
+			"SET manual_renewals = manual_renewals + 1 "
+			"WHERE event_id = %u "
+			"AND guild_id = %u "
+			"AND manual_renewals < %u",
+			FESTIVAL_EVENT_ID,
+			guildID,
+			MAX_MANUAL_RENEWALS
+		);
+
+		if (!renewalMsg ||
+			renewalMsg->uiSQLErrno != 0 ||
+			!renewalMsg->Get() ||
+			renewalMsg->Get()->uiAffectedRows != 1)
+		{
+			sys_err(
+				"Festival: falha ao registrar renovacao da guilda %u",
+				guildID
+			);
+			return rollback();
+		}
+
+		// 8. Insere as novas missoes mantendo o mesmo ciclo.
+		if (!SaveGuildAssignments(guildID, currentCycle, selected))
+		{
+			sys_err(
+				"Festival: falha ao distribuir novas missoes para guilda %u",
+				guildID
+			);
+			return rollback();
+		}
+
+		// 9. Confirma desconto, contador e novas missoes juntos.
+		auto commitMsg = db.DirectQuery("COMMIT");
+
+		if (!commitMsg || commitMsg->uiSQLErrno != 0)
+		{
+			sys_err(
+				"Festival: falha no COMMIT da renovacao da guilda %u",
+				guildID
+			);
+			db.DirectQuery("ROLLBACK");
+			return false;
+		}
+
+		// Atualiza o saldo em memoria e notifica os membros online.
+		guild->RecvMoneyChange(newGuildGold);
+
+		sys_log(
+			0,
+			"Festival: guilda %u renovou missoes manualmente. "
+			"Ciclo %u, renovacoes %u, custo %u",
+			guildID,
+			currentCycle,
+			manualRenewals + 1,
+			RENEWAL_COST
+		);
+
+		ch->ChatPacket(
+			CHAT_TYPE_INFO,
+			"As missoes da guilda foram renovadas. Custo: 300.000 Gold."
+		);
+
+		return true;
+	}
 
 }

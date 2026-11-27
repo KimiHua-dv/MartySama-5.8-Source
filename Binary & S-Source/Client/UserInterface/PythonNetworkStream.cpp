@@ -957,6 +957,17 @@ bool CPythonNetworkStream::SendFestivalOpen()
 
 }
 
+bool CPythonNetworkStream::SendFestivalRenewMissions()
+{
+	TPacketCGFestivGuild packet = {};
+
+	packet.header = HEADER_CG_FESTIVAL;
+	packet.subheader = FEST_CG_RENEW_MISSIONS;
+	packet.template_id = 0;
+
+	return Send(sizeof(packet), &packet);
+}
+
 bool CPythonNetworkStream::SendFestivalClaimPending()
 {
 	TPacketCGFestivGuild packet = {};

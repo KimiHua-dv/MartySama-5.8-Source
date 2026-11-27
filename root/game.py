@@ -2410,16 +2410,23 @@ class GameWindow(ui.ScriptWindow):
 		if self.Festival:
 			self.Festival.SetFestivalListStatus(status)
 
-
-	def AppendFestivalMission(self, mission_id, title, description, points, mission_type, target_vnum, target_count, time_limit, status,progress,remaining_time,player_name,is_owner):
+	def UpdateFestivalMissionProgress(self, mission_id, progress, status):
 		if self.Festival:
-			self.Festival.AppendFestivalMission(self, mission_id, title, description, points, mission_type, target_vnum, target_count, time_limit, status,progress,remaining_time,player_name,is_owner)
+			self.Festival.UpdateMissionProgress(mission_id,progress,status)
+			
+	def AppendFestivalMission(self, mission_id, title, description, points,mission_type, target_vnum, target_count,time_limit, status, progress, remaining_time,player_name, is_owner):
+		if self.Festival:
+			self.Festival.AppendFestivalMission(mission_id, title, description, points,mission_type, target_vnum, target_count,time_limit, status, progress, remaining_time,player_name, is_owner)
 		else:
 			dbg.TraceError("FESTIVAL: janela Festival nao existe")
 			
-	def UpdateFestivalGuildState(self,total_points,reward_progress,pending_points,claimed_chests,pending_200,pending_500,pending_1000,pending_1500,pending_2000,accepted_missions):
+	def UpdateFestivalGuildState(self,total_points,reward_progress,pending_points,claimed_chests,
+		pending_200,pending_500,pending_1000,pending_1500,pending_2000,
+		accepted_missions,personal_contribution,contribution_rank,renewal_count,next_renewal_seconds):
 		if self.Festival:
-			self.Festival.UpdateGuildState(total_points,reward_progress,pending_points,claimed_chests,pending_200,pending_500,pending_1000,pending_1500,pending_2000,accepted_missions)
+			self.Festival.UpdateGuildState(total_points,reward_progress,pending_points,claimed_chests,
+				pending_200,pending_500,pending_1000,pending_1500,pending_2000,
+				accepted_missions,personal_contribution,contribution_rank,renewal_count,next_renewal_seconds)
 			
 	def ReloadItemShop(self):
 

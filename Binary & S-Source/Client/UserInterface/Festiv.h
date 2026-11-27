@@ -18,7 +18,8 @@ enum EFestivalGuildSubHeader
 	FEST_CG_ACCEPT_MISSION,
 	FEST_GC_GUILD_STATE,
 	FEST_CG_CLAIM_PENDING,
-	FEST_GC_MISSION_UPDATE
+	FEST_GC_MISSION_UPDATE,
+	FEST_CG_RENEW_MISSIONS
 };
 
 #pragma pack(push, 1)
@@ -121,6 +122,11 @@ typedef struct SFestivalGuildStatePacket
 	DWORD pending_chest_1500;
 	DWORD pending_chest_2000;
 	DWORD accepted_missions;
+	// Informacoes individuais e renovacao da guilda.
+	DWORD personal_contribution;
+	DWORD contribution_rank;
+	DWORD renewal_count;
+	DWORD next_renewal_seconds;
 } TPacketGCFestivalGuildState;
 #pragma pack(pop)
 #pragma pack(pop)

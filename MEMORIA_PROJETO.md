@@ -29,8 +29,8 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 - **Concluído:**  ciclo completo de encerramento do evento, incluindo `FinalizeFestivalEvent()`, integração dos três caminhos e validação de `StartEvent()`.
 - **Concluído:**  progresso e tempo restante das missões aceitas; exibir o nome do jogador responsável quando outro membro aceitar uma missão.
 - **Concluído:** adicionar atualização automatica de progresso para cada missão.
-- **Próxima prioridade 1:** painel Informações com contribuição individual, posição na guilda, total de renovações e contagem regressiva para a próxima renovação automática.
-- **Próxima prioridade 2:** implementar renovação de missoes pelo lider da guilda custando 300.000 gold da guilda.
+- **Concluído:** painel Informações com contribuição individual, posição na guilda, total de renovações e contagem regressiva para a próxima renovação automática.
+- **Próxima prioridade 1:** implementar renovação de missoes pelo lider da guilda custando 300.000 gold da guilda.
 - **concluido:** validar protocolo de disponibilidade da lista (`FESTIVAL_LIST_ACTIVE/UNAVAILABLE`) e testar o ciclo completo entre encerramento, histórico e nova edição.
 - **Futuro:** painel histórico de edições.
 

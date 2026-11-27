@@ -343,6 +343,7 @@ class CPythonNetworkStream : public CNetworkStream, public CSingleton<CPythonNet
 		bool SendFestivalOpen();
 		bool SendFestivalMissionAccept(DWORD templateID);
 		bool SendFestivalClaimPending();
+		bool SendFestivalRenewMissions();
 
 		//item_shop
 		bool SendItemShopOpen();
