@@ -1034,13 +1034,6 @@ void DESC::SendLoginSuccessPacket()
 		}
 	}
 	
-	sys_err("DEBUG SIZE SERVER:");
-	sys_err("PLAYER_PER_ACCOUNT=%d", PLAYER_PER_ACCOUNT);
-	sys_err("CHARACTER_NAME_MAX_LEN=%d", CHARACTER_NAME_MAX_LEN);
-	sys_err("GUILD_NAME_MAX_LEN=%d", GUILD_NAME_MAX_LEN);
-	sys_err("TSimplePlayer=%d", sizeof(TSimplePlayer));
-	sys_err("TPacketGCLoginSuccess=%d", sizeof(TPacketGCLoginSuccess));
-	
 	Packet(&p, sizeof(TPacketGCLoginSuccess));
 }
 

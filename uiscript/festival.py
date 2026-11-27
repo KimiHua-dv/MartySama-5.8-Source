@@ -21,7 +21,7 @@ window = {
 					"name": "painel_lateral_e",
 					"type" : "thinboard_circle",
 					"x": 10, "y": 30,
-					"width": 150, "height": 505,
+					"width": 155, "height": 505,
 					"children":
 					(
 						{
@@ -75,7 +75,7 @@ window = {
 					"name": "painel_lateral_d_cima",
 					"type" : "thinboard_circle",
 					"x": 535, "y": 30,
-					"width": 150, "height": 70,
+					"width": 155, "height": 70,
 					"children":
 					(
 						{
@@ -94,7 +94,7 @@ window = {
 					"name": "painel_lateral_d_1",
 					"type" : "thinboard_circle",
 					"x": 535, "y": 102,
-					"width": 150, "height": 70,
+					"width": 155, "height": 70,
 					"children":
 					(
 						{
@@ -110,7 +110,7 @@ window = {
 					"name": "painel_lateral_d_2",
 					"type" : "thinboard_circle",
 					"x": 535, "y": 174,
-					"width": 150, "height": 120,
+					"width": 155, "height": 120,
 					"children":
 					(
 						{
@@ -125,6 +125,8 @@ window = {
 						{"name": "info2", "type": "text", "x": 8, "y": 43, "text": "Todas precisam estar concluidas."},
 						{"name": "info3", "type": "text", "x": 8, "y": 53, "text": "Limite: 2 vezes por ciclo."},
 						{"name": "info4", "type": "text", "x": 8, "y": 63, "text": "Custo: 300.000 Gold"},
+						{"name": "info5", "type": "text", "x": 8, "y": 73, "text": "O custo é cobrado do cofre"},
+						{"name": "info6", "type": "text", "x": 8, "y": 83, "text": "da guilda."},
 						{"name": "renovar", "type": "button", "x": 95, "y": 90, 
 						 "text": "Ativar",
 						"default_image" : "d:/ymir work/ui/public/small_button_01.sub",
@@ -136,7 +138,7 @@ window = {
 					"name": "painel_lateral_d_3",
 					"type" : "thinboard_circle",
 					"x": 535, "y": 296,
-					"width": 150, "height": 70,
+					"width": 155, "height": 70,
 					"children":
 					(
 						{
@@ -152,7 +154,7 @@ window = {
 					"name": "painel_lateral_d_4",
 					"type" : "thinboard_circle",
 					"x": 535, "y": 368,
-					"width": 150, "height": 168,
+					"width": 155, "height": 168,
 					"children":
 					(
 						{

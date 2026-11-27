@@ -30,8 +30,9 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 - **Concluído:**  progresso e tempo restante das missões aceitas; exibir o nome do jogador responsável quando outro membro aceitar uma missão.
 - **Concluído:** adicionar atualização automatica de progresso para cada missão.
 - **Concluído:** painel Informações com contribuição individual, posição na guilda, total de renovações e contagem regressiva para a próxima renovação automática.
-- **Próxima prioridade 1:** implementar renovação de missoes pelo lider da guilda custando 300.000 gold da guilda.
+- **Concluído:** implementar renovação de missoes pelo lider da guilda custando 300.000 gold da guilda.
 - **concluido:** validar protocolo de disponibilidade da lista (`FESTIVAL_LIST_ACTIVE/UNAVAILABLE`) e testar o ciclo completo entre encerramento, histórico e nova edição.
+-**Prioridade:** informaçoes sobre o evento na parte superior do painel como: Nome do evento, frase abaixo do nome: "conclua missões,somem pontos e leve sua guilda a vitoria.Trabalho em equipe faz a diferença", tempo restante para fim do evento com timer.
 - **Futuro:** painel histórico de edições.
 
 ### Sistema de reinos
@@ -92,3 +93,11 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 - Decisões: manter a atualização incremental, sem reconstruir toda a janela.
 - Compilou/testou na VM: teste funcional confirmado pelo usuário; compilação na VM.
 - confimado: conclusão da missão, atribuição de pontos e atualização do estado dos baús.
+
+###2026-11-27 — Festival de Guildas: revisão das renovações
+- Feito: identificados dois erros na implementação de renovação: ausência de reset de manual_renewals em ClearEvent() e vírgula ausente no SQL de ProcessCycle().
+- Confirmado na source: RenewGuildMissions() não modifica next_renewal_at; esse campo representa o fim do ciclo automático.
+- Proposta (não verificada/compilada): incluir reset de manual_renewals, corrigir SQL e atualizar o schema de referência.
+- Decisões: renovação manual não altera o prazo automático de 120 minutos.
+- Compilou/testou na VM: não.
+- Próximo passo: aplicar as correções, compilar e testar abertura de edição, duas renovações manuais e transição automática.
