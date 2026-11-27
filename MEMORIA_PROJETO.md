@@ -42,8 +42,12 @@ Mantenha curto: só o que muda decisões futuras. Detalhe de código fica no rep
 - (preencher status)
 
 ## 3. Pendências globais (ordem de prioridade)
-1. Festival — exibir progresso e tempo restante das missões aceitas e identificar o jogador responsável pelas missões ocupadas.
-2. Festival — implementar o painel Informações: contribuição, posição na guilda, renovações e próxima renovação automática.
+Cabeçalho informativo
+- Objetivo: finalizar a identidade visual do painel inicial.
+- Referência: banner enviado em 27/11/2026.
+- Dados: nome, descrição, período e tempo restante da edição.
+- Decisão: utilizar ends_at como fonte de verdade do encerramento.
+- Próximo passo: implementar o cabeçalho, estender o pacote e reposicionar os painéis.
 
 
 ## 4. Problemas conhecidos / armadilhas
