@@ -3240,8 +3240,48 @@ namespace Festival
         str_to_number(payload.personal_contribution, infoRow[2]);
         str_to_number(payload.contribution_rank, infoRow[3]);
 		
+		        // ---------------------------------------------------------
+        // 5. Informacoes gerais da edicao do Festival.
+        // ---------------------------------------------------------
+
+        auto eventMsg = DBManager::instance().DirectQuery(
+            "SELECT "
+                "COALESCE(GREATEST(0, "
+                    "TIMESTAMPDIFF(SECOND, NOW(), ends_at)"
+                "), 0), "
+                "COALESCE(DATE_FORMAT("
+                    "started_at, '%%d/%%m/%%Y %%H:%%i'"
+                "), ''), "
+                "COALESCE(DATE_FORMAT("
+                    "ends_at, '%%d/%%m/%%Y %%H:%%i'"
+                "), '') "
+            "FROM srv1_player.festival_event "
+            "WHERE id = %u "
+            "LIMIT 1",
+            FESTIVAL_EVENT_ID
+        );
+
+        SQLResult* eventResult = GetSelectResult(eventMsg,"consultar informacoes gerais da edicao");
+
+        if (!eventResult)
+            return;
+
+        MYSQL_ROW eventRow = mysql_fetch_row(eventResult->pSQLResult);
+
+        if (!eventRow)
+        {
+            sys_err("Festival: nao foi possivel consultar a edicao %u",FESTIVAL_EVENT_ID);
+            return;
+        }
+
+        str_to_number(payload.event_remaining_seconds,eventRow[0]);
+
+        snprintf(payload.event_started_at,sizeof(payload.event_started_at),"%s",eventRow[1] ? eventRow[1] : "");
+
+        snprintf(payload.event_ends_at, sizeof(payload.event_ends_at),"%s",eventRow[2] ? eventRow[2] : "");
+		
 		// ---------------------------------------------------------
-		// 5. Envia o pacote.
+		// 6. Envia o pacote.
 		// ---------------------------------------------------------
 
 		TPacketGCFestival header = {};

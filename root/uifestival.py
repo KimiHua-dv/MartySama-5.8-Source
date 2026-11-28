@@ -160,7 +160,11 @@ class Festival(ui.ScriptWindow):
 		self.NextRenewalSeconds = 0
 		self.NextRenewalEndTime = 0
 		self.lastRenewalSecond = None
-		
+		self.EventRemainingSeconds = 0
+		self.EventEndTime = 0
+		self.EventStartedAt = ""
+		self.EventEndsAt = ""
+		self.lastEventSecond = None
 
 		self.LoadWindow()
 
@@ -169,6 +173,17 @@ class Festival(ui.ScriptWindow):
 		pyScrLoader.LoadScriptFile(self, "uiscript/festival.py")
 
 		self.board = self.GetChild("board")
+		self.eventTitle = self.GetChild("event_title")
+		self.eventDescription1 = self.GetChild("event_description_1")
+		self.eventDescription2 = self.GetChild("event_description_2")
+		self.eventDescription3 = self.GetChild("event_description_3")
+		self.eventRemaining = self.GetChild("event_remaining")
+		self.eventPeriodStart = self.GetChild("event_period_start")
+		self.eventPeriodEnd = self.GetChild("event_period_end")
+
+		self.eventRemaining.SetLimitWidth(138)
+		self.eventPeriodStart.SetLimitWidth(138)
+		self.eventPeriodEnd.SetLimitWidth(138)
 		self.painel_missoes = self.GetChild("painel_central")
 		# Reutilizar a barra declarada no uiscript/festival.py.
 		self.missionScrollBar = self.GetChild("mission_scrollbar")
@@ -347,6 +362,7 @@ class Festival(ui.ScriptWindow):
 		for missionItem in self.missionItems:
 			missionItem.UpdateTimer(currentTime)
 		self.UpdateRenewalTimer(currentTime)
+		self.UpdateEventHeader(currentTime)
 
 	def CreateGuildGauge(self):
 		self.guildGauge = ui.Gauge()
@@ -410,8 +426,9 @@ class Festival(ui.ScriptWindow):
 		self.SetMilestone()
 
 	def UpdateGuildState(self,total_points,reward_progress,pending_points,claimed_chests,
-		pending_200,pending_500,pending_1000,pending_1500,pending_2000,
-		accepted_missions,personal_contribution,contribution_rank,renewal_count,next_renewal_seconds):
+			pending_200,pending_500,pending_1000,pending_1500,pending_2000,
+			accepted_missions,personal_contribution,contribution_rank,renewal_count,
+			next_renewal_seconds,event_remaining_seconds,event_started_at,event_ends_at):
 
 		self.TotalPoints = int(total_points)
 		self.RewardProgress = int(reward_progress)
@@ -436,6 +453,13 @@ class Festival(ui.ScriptWindow):
 		self.NextRenewalEndTime = app.GetTime() + self.NextRenewalSeconds
 		self.lastRenewalSecond = None
 		
+		self.EventRemainingSeconds = max(0, int(event_remaining_seconds))
+		self.EventEndTime = (app.GetTime() + self.EventRemainingSeconds)
+		self.EventStartedAt = str(event_started_at)
+		self.EventEndsAt = str(event_ends_at)
+		self.lastEventSecond = None
+
+		self.UpdateEventHeader(app.GetTime())
 		self.UpdateRenewalTimer(app.GetTime())
 		self.RefreshGuildInfos()
 		self.RefreshGuildProgress()
@@ -645,3 +669,40 @@ class Festival(ui.ScriptWindow):
 		seconds = remaining % 60
 
 		self.infoNextRenewal.SetText("Proxima Renovação: %02d:%02d:%02d" % (hours,minutes,seconds))
+		
+	def UpdateEventHeader(self, currentTime):
+		remaining = max(
+			0,
+			int(self.EventEndTime - currentTime)
+		)
+
+		if remaining != self.lastEventSecond:
+			self.lastEventSecond = remaining
+
+			days = remaining // 86400
+			hours = (remaining % 86400) // 3600
+			minutes = (remaining % 3600) // 60
+			seconds = remaining % 60
+
+			self.eventRemaining.SetText(
+				"Restante: %dd %02d:%02d:%02d" % (
+					days,
+					hours,
+					minutes,
+					seconds
+				)
+			)
+
+		if self.EventStartedAt:
+			self.eventPeriodStart.SetText(
+				"De %s" % self.EventStartedAt
+			)
+		else:
+			self.eventPeriodStart.SetText("Evento indisponível")
+
+		if self.EventEndsAt:
+			self.eventPeriodEnd.SetText(
+				"Até %s" % self.EventEndsAt
+			)
+		else:
+			self.eventPeriodEnd.SetText("")

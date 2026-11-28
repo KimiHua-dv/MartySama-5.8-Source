@@ -162,6 +162,10 @@ typedef struct SFestivalGuildStatePacket
     DWORD contribution_rank;
     DWORD renewal_count;
     DWORD next_renewal_seconds;
+	// Informacoes gerais da edicao do Festival.
+    DWORD event_remaining_seconds;
+    char event_started_at[20];
+    char event_ends_at[20];
 } TPacketGCFestivalGuildState;
 #pragma pack(pop)
 
